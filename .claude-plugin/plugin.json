@@ -1,0 +1,7 @@
+{
+  "name": "sainytk-skills",
+  "skills": [
+    "./skills/automation/codex-computer-use",
+    "./skills/automation/codex-imagegen"
+  ]
+}

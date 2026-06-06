@@ -1,6 +1,7 @@
 Skills are organized into category folders under `skills/`:
 
 - `automation/` — Codex-powered task automation (computer use, image generation)
+- `integrations/` — service readers and local-account integrations
 - `in-progress/` — drafts not yet ready to ship
 - `deprecated/` — no longer used
 

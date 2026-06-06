@@ -1,7 +1,12 @@
 {
   "name": "sainytk-skills",
   "skills": [
+    "./skills/automation/agent-browser-core",
     "./skills/automation/codex-computer-use",
-    "./skills/automation/codex-imagegen"
+    "./skills/automation/codex-imagegen",
+    "./skills/integrations/google-office",
+    "./skills/integrations/notebooklm",
+    "./skills/integrations/read-line-messages",
+    "./skills/integrations/read-trello-tasks"
   ]
 }

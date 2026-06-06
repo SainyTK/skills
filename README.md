@@ -15,14 +15,7 @@ My personal Claude Code agent skills — collected in one place.
 Install via [skills.sh](https://skills.sh):
 
 ```bash
-npx skills@latest add SainyTK/sainy-skills
-```
-
-Or clone and link manually:
-
-```bash
-git clone https://github.com/SainyTK/sainy-skills ~/Documents/projects/personal/sainy-skills/skills
-bash ~/Documents/projects/personal/sainy-skills/skills/scripts/link-skills.sh
+npx skills@latest add SainyTK/sainy
 ```
 
 ## Reference

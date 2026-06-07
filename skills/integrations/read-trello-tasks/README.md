@@ -3,7 +3,7 @@
 Read Trello boards, lists, cards, checklist items, and board/card activity via the Trello REST API.
 Auth is handled through a local API key + user token (no GCP required).
 
-For first-time setup see [SETUP_GUIDE.md](SETUP_GUIDE.md).
+For first-time setup see [SETUP_GUIDE.md](https://github.com/SainyTK/skills/blob/main/setup-guides/read-trello-tasks/SETUP_GUIDE.md).
 
 ---
 

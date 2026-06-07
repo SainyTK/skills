@@ -2,11 +2,13 @@
 
 <img src="assets/banner.png" alt="skills banner" width="360" />
 
-# Sainy Skills
-
-My personal Claude Code agent skills — collected in one place.
-
 </div>
+
+# Agent Ultimate Skills
+
+[![skills.sh](https://skills.sh/b/sainytk/skills)](https://skills.sh/sainytk/skills)
+
+Equip ultimate skills to any of your AI agents.
 
 ---
 
@@ -34,5 +36,6 @@ Skills for reading and working with external services through local account setu
 
 - **[google-office](./skills/integrations/google-office/SKILL.md)** — Read and edit Google Drive, Docs, and Sheets via local OAuth.
 - **[notebooklm](./skills/integrations/notebooklm/SKILL.md)** — Query Google NotebookLM notebooks with source-grounded answers.
+- **[read-gmail](./skills/integrations/read-gmail/SKILL.md)** — Read and search Gmail messages for one or more Google accounts via local OAuth.
 - **[read-line-messages](./skills/integrations/read-line-messages/SKILL.md)** — Read LINE desktop chats from screenshots with accurate transcription.
 - **[read-trello-tasks](./skills/integrations/read-trello-tasks/SKILL.md)** — Read Trello boards, lists, cards, and checklist tasks.

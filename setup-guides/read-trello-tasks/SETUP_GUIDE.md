@@ -34,6 +34,8 @@ Open <https://trello.com/> → **Create → Workspace** (or the **Create a
 Workspace** button on the Boards page). Give it a name, pick any **Workspace
 type**, and click **Continue**.
 
+![Create a Workspace](screenshots/01-create-workspace.png)
+
 > If the account is already a member of a Workspace, skip this step.
 > The API key works account-wide regardless of which Workspace owns the
 > Power-Up — it can read any board the account can see.
@@ -43,6 +45,8 @@ type**, and click **Continue**.
 ## Step 2 — Open the Power-Up admin and create a new app
 
 Go to <https://trello.com/power-ups/admin>. Under **Your Apps**, click **New**.
+
+![Your Apps → New](screenshots/02-your-apps-new.png)
 
 ---
 
@@ -61,6 +65,8 @@ enable):
 
 Then click **Create**.
 
+![New App form](screenshots/03-new-app-form.png)
+
 ---
 
 ## Step 4 — Generate the API key
@@ -68,12 +74,16 @@ Then click **Create**.
 On the app page, open the **API key** tab in the left nav, then click
 **Generate a new API key**.
 
+![Generate a new API key](screenshots/04-generate-api-key.png)
+
 ---
 
 ## Step 5 — Copy the API key
 
 Copy the **API key** value. (You do **not** need the *Secret* — this skill
 authorizes via a user token, not the client secret.)
+
+![API key generated](screenshots/05-api-key-generated.png)
 
 Put the key in `.agents/skills/read-trello-tasks/.env`:
 
@@ -95,6 +105,8 @@ whitelisted on the Power-Up.
 Still on the **API key** tab, type `http://localhost:3458` into **Allowed
 origins** and click **Add**. It should appear in the list below the field.
 
+![Add allowed origin](screenshots/06-allowed-origins.png)
+
 > If you change `TRELLO_REDIRECT_URI` in `.env`, add that origin here instead.
 
 ---
@@ -110,6 +122,8 @@ bun .agents/skills/read-trello-tasks/scripts/trello.ts login
 This starts a local callback server on port 3458, prints an authorization
 URL, and opens it in your browser. On the **authorization** page, click
 **Allow**.
+
+![Authorize → Allow](screenshots/07-authorize-allow.png)
 
 After you click Allow, the token is captured automatically and written to
 `.data/trello-token.json` (mode 600). The command prints your member info and

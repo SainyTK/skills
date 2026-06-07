@@ -1,6 +1,6 @@
-# google-office — Setup Guide
+# read-gmail — Setup Guide
 
-How to create and configure a Google OAuth 2.0 client so the skill can read and write Drive, Docs, and Sheets on behalf of your Google account.
+How to create and configure a Google OAuth 2.0 client so the skill can read Gmail on behalf of your Google account.
 
 ---
 
@@ -11,17 +11,21 @@ How to create and configure a Google OAuth 2.0 client so the skill can read and 
 
 ---
 
-## Step 1 — Enable the required APIs
+## Step 1 — Enable the Gmail API
 
 Go to [console.cloud.google.com](https://console.cloud.google.com), select your project, then navigate to **APIs & Services → Library**.
 
-Search for and enable each of the following APIs. For each: click the API name, then click **Enable**. If the **Manage** button is already shown alongside an **API Enabled** badge, it's already on — skip to the next.
+![API Library — search box](screenshots/01-api-library.png)
 
-| API | Purpose |
-|-----|---------|
-| Google Drive API | List, upload, download files |
-| Google Docs API | Read and write Docs |
-| Google Sheets API | Read and write Sheets |
+Search for **Gmail API**, click it, and click **Enable**. If the **Manage** button is shown alongside an **API Enabled** badge, it is already on — skip to the next step.
+
+![Gmail API — already enabled](screenshots/02-gmail-api-enabled.png)
+
+You can also navigate directly (replace `YOUR_PROJECT_ID`):
+
+```
+https://console.cloud.google.com/apis/library/gmail.googleapis.com?project=YOUR_PROJECT_ID
+```
 
 ---
 
@@ -35,7 +39,9 @@ Go to **APIs & Services → OAuth consent screen**:
 - Fill in **App name** and **User support email**.
 - Click **Save and Continue** through the remaining steps — you can skip optional scopes at this stage.
 
-**External apps in Testing mode** — you must add your own Google account as a test user or the OAuth flow will be blocked. Navigate to **Google Auth Platform → Audience**, click **Back to testing** if the status shows "In production", then scroll to **Test users → Add users** and enter your email.
+**External apps in Testing mode** — you must add your own Google account as a test user or the OAuth flow will be blocked. Navigate to **Google Auth Platform → Audience**, click **Back to testing** if status shows "In production", then scroll to **Test users → Add users** and enter your email.
+
+![Audience page — Back to testing and Test users](screenshots/03-audience-testing.png)
 
 > If the consent screen is already configured (existing project), skip this step.
 
@@ -45,7 +51,11 @@ Go to **APIs & Services → OAuth consent screen**:
 
 Go to **APIs & Services → Credentials**. Click **+ Create credentials**.
 
+![Credentials page — Create credentials button highlighted](screenshots/04-credentials-page.png)
+
 Select **OAuth client ID** from the dropdown.
+
+![Create credentials dropdown — OAuth client ID option highlighted](screenshots/05-create-cred-menu.png)
 
 ---
 
@@ -53,13 +63,19 @@ Select **OAuth client ID** from the dropdown.
 
 On the **Create OAuth client ID** form, open the **Application type** dropdown and choose **Desktop app**.
 
+![Application type dropdown — Desktop app option highlighted](screenshots/06-app-type-dropdown.png)
+
 Enter a descriptive **Name** (shown only in the console, not to end users) and click **Create**.
+
+![Name filled in — Create button](screenshots/07-name-and-create.png)
 
 ---
 
 ## Step 5 — Copy your credentials
 
 A dialog appears showing your **Client ID** and **Client secret**.
+
+![OAuth client created — Client ID and Client secret highlighted](screenshots/08-oauth-client-created.png)
 
 > **Copy both values before closing this dialog.** The client secret cannot be retrieved again — if lost you must create a new secret (or a new client).
 >
@@ -75,21 +91,21 @@ A dialog appears showing your **Client ID** and **Client secret**.
 Copy `env.example` to `.env` inside the skill directory:
 
 ```sh
-cp .agents/skills/google-office/env.example .agents/skills/google-office/.env
+cp .agents/skills/read-gmail/env.example .agents/skills/read-gmail/.env
 ```
 
 Edit `.env` and fill in the values you copied:
 
 ```dotenv
-GOOGLE_CLIENT_ID=<paste Client ID here>
-GOOGLE_CLIENT_SECRET=<paste Client secret here>
-GOOGLE_REDIRECT_URI=http://localhost:3457/office/callback
-GOOGLE_SCOPES=https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email
+GMAIL_CLIENT_ID=<paste Client ID here>
+GMAIL_CLIENT_SECRET=<paste Client secret here>
+GMAIL_REDIRECT_URI=http://localhost:3457/gmail/callback
+GMAIL_SCOPES=https://www.googleapis.com/auth/gmail.readonly
 ```
 
-> **Desktop app** clients automatically accept any `localhost` loopback redirect URI — you do not need to register `http://localhost:3457/office/callback` anywhere in the GCP console.
+> **Desktop app** clients automatically accept any `localhost` loopback redirect URI — you do not need to register `http://localhost:3457/gmail/callback` anywhere in the GCP console.
 
-> **Reusing credentials:** If you already have a Desktop-type OAuth client (e.g., from the `read-gmail` skill), you can paste the same Client ID and Secret here — no extra console changes needed.
+> **Reusing credentials with google-office:** You can paste the same Client ID and Secret into both skills' `.env` files. They use different callback paths (`/gmail/callback` vs `/office/callback`) but a single Desktop app client handles both.
 
 ---
 
@@ -98,15 +114,15 @@ GOOGLE_SCOPES=https://www.googleapis.com/auth/drive https://www.googleapis.com/a
 From the repo root:
 
 ```sh
-bun .agents/skills/google-office/scripts/office.ts login
+bun .agents/skills/read-gmail/scripts/gmail.ts login
 ```
 
-A browser window opens the Google OAuth consent screen. Sign in and approve the requested permissions. The token is saved to `.agents/skills/google-office/.data/accounts/<email>.json`.
+A browser window opens the Google OAuth consent screen. Sign in and approve the requested permissions. The token is saved to `.agents/skills/read-gmail/.data/accounts/<email>.json`.
 
 Verify:
 
 ```sh
-bun .agents/skills/google-office/scripts/office.ts status
+bun .agents/skills/read-gmail/scripts/gmail.ts status
 ```
 
 ---

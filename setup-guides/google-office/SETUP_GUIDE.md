@@ -15,7 +15,7 @@ How to create and configure a Google OAuth 2.0 client so the skill can read and 
 
 Go to [console.cloud.google.com](https://console.cloud.google.com), select your project, then navigate to **APIs & Services → Library**.
 
-![API Library](screenshots/13-api-library.png)
+![API Library](screenshots/01-api-library.png)
 
 Search for and enable each of the following APIs. For each: click the API name, then click **Enable**. If the **Manage** button is already shown alongside an **API Enabled** badge, it's already on — skip to the next.
 
@@ -25,7 +25,7 @@ Search for and enable each of the following APIs. For each: click the API name, 
 | Google Docs API | Read and write Docs |
 | Google Sheets API | Read and write Sheets |
 
-![API already enabled — Manage + API Enabled badge](screenshots/03-apis-enabled.png)
+![API already enabled — Manage + API Enabled badge](screenshots/02-apis-enabled.png)
 
 ---
 
@@ -33,15 +33,37 @@ Search for and enable each of the following APIs. For each: click the API name, 
 
 If this is a brand-new project with no OAuth credentials, GCP requires a consent screen before you can create a client.
 
-Go to **APIs & Services → OAuth consent screen**:
-
-- **User type**: choose **External** (personal Google accounts) or **Internal** (Google Workspace orgs only).
-- Fill in **App name** and **User support email**.
-- Click **Save and Continue** through the remaining steps — you can skip optional scopes at this stage.
-
-**External apps in Testing mode** — you must add your own Google account as a test user or the OAuth flow will be blocked. Navigate to **Google Auth Platform → Audience**, click **Back to testing** if the status shows "In production", then scroll to **Test users → Add users** and enter your email.
+Go to **APIs & Services → OAuth consent screen** (or **Google Auth Platform → Branding** in the newer console layout).
 
 > If the consent screen is already configured (existing project), skip this step.
+
+### 2a — User type
+
+Choose **External** (personal Google accounts and any Google account) or **Internal** (Google Workspace orgs only). For personal use, pick **External**.
+
+### 2b — App information
+
+Fill in the required fields:
+
+| Field | Notes |
+|-------|-------|
+| **App name** | Shown on the consent screen, e.g. `My Office Agent` |
+| **User support email** | Your email address |
+| **Developer contact information** | Your email address (required — easy to miss, at the bottom of the form) |
+
+All other fields (logo, homepage, privacy policy, terms of service) are optional — leave them blank.
+
+![App information form — App name and User support email fields](screenshots/03-app-information.png)
+
+Click **Save and Continue**.
+
+### 2c — Test users
+
+Because the app is in **Testing** mode, only explicitly listed Google accounts can complete the OAuth flow.
+
+Click **Add users** and enter your Google account email. Click **Save and Continue**.
+
+![Add test users](screenshots/04-add-test-users.png)
 
 ---
 
@@ -49,11 +71,11 @@ Go to **APIs & Services → OAuth consent screen**:
 
 Go to **APIs & Services → Credentials**. Click **+ Create credentials**.
 
-![Credentials page — Create credentials button](screenshots/04-credentials-page.png)
+![Credentials page — Create credentials button](screenshots/05-credentials-page.png)
 
 Select **OAuth client ID** from the dropdown.
 
-![Create credentials dropdown — OAuth client ID option](screenshots/05-create-credential-menu.png)
+![Create credentials dropdown — OAuth client ID option](screenshots/06-create-credential-menu.png)
 
 ---
 
@@ -65,7 +87,7 @@ On the **Create OAuth client ID** form, open the **Application type** dropdown a
 
 Enter a descriptive **Name** (shown only in the console, not to end users) and click **Create**.
 
-![Name filled in — Create button](screenshots/09-name-filled.png)
+![Name filled in — Create button](screenshots/08-name-filled.png)
 
 ---
 
@@ -73,7 +95,7 @@ Enter a descriptive **Name** (shown only in the console, not to end users) and c
 
 A dialog appears showing your **Client ID** and **Client secret**.
 
-![OAuth client created — Client ID and Client secret highlighted](screenshots/10-oauth-client-created.png)
+![OAuth client created — Client ID and Client secret highlighted](screenshots/09-oauth-client-created.png)
 
 > **Copy both values before closing this dialog.** The client secret cannot be retrieved again — if lost you must create a new secret (or a new client).
 >
@@ -88,6 +110,12 @@ A dialog appears showing your **Client ID** and **Client secret**.
 
 Copy `env.example` to `.env` inside the skill directory:
 
+**Claude Code**
+```sh
+cp .claude/skills/google-office/env.example .claude/skills/google-office/.env
+```
+
+**Codex**
 ```sh
 cp .agents/skills/google-office/env.example .agents/skills/google-office/.env
 ```
@@ -111,14 +139,26 @@ GOOGLE_SCOPES=https://www.googleapis.com/auth/drive https://www.googleapis.com/a
 
 From the repo root:
 
+**Claude Code**
+```sh
+bun .claude/skills/google-office/scripts/office.ts login
+```
+
+**Codex**
 ```sh
 bun .agents/skills/google-office/scripts/office.ts login
 ```
 
-A browser window opens the Google OAuth consent screen. Sign in and approve the requested permissions. The token is saved to `.agents/skills/google-office/.data/accounts/<email>.json`.
+A browser window opens the Google OAuth consent screen. Sign in and approve the requested permissions. The token is saved to `.claude/skills/google-office/.data/accounts/<email>.json` (Claude Code) or `.agents/skills/google-office/.data/accounts/<email>.json` (Codex).
 
 Verify:
 
+**Claude Code**
+```sh
+bun .claude/skills/google-office/scripts/office.ts status
+```
+
+**Codex**
 ```sh
 bun .agents/skills/google-office/scripts/office.ts status
 ```

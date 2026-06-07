@@ -45,8 +45,14 @@ After creation you land on the **Basic Information** page. Under **App Credentia
 
 ![Basic Information — App ID and Client ID rows highlighted (values redacted)](screenshots/03-basic-info.png)
 
-Paste them into `.agents/skills/read-slack-messages/.env`:
+Paste them into the skill's `.env`:
 
+**Claude Code**
+```sh
+cp .claude/skills/read-slack-messages/env.example .claude/skills/read-slack-messages/.env
+```
+
+**Codex**
 ```sh
 cp .agents/skills/read-slack-messages/env.example .agents/skills/read-slack-messages/.env
 ```
@@ -111,14 +117,26 @@ Scroll up on **OAuth & Permissions** (or click **Install App** in the sidebar). 
 
 From the repo root, run:
 
+**Claude Code**
+```sh
+bun .claude/skills/read-slack-messages/scripts/slack.ts login
+```
+
+**Codex**
 ```sh
 bun .agents/skills/read-slack-messages/scripts/slack.ts login
 ```
 
-A browser window opens, redirects through Slack OAuth, and lands on `localhost:3456/slack/callback`. The token is saved to `.agents/skills/read-slack-messages/.data/slack-token.json`.
+A browser window opens, redirects through Slack OAuth, and lands on `localhost:3456/slack/callback`. The token is saved to `.claude/skills/read-slack-messages/.data/slack-token.json` (Claude Code) or `.agents/skills/read-slack-messages/.data/slack-token.json` (Codex).
 
 Verify with:
 
+**Claude Code**
+```sh
+bun .claude/skills/read-slack-messages/scripts/slack.ts status
+```
+
+**Codex**
 ```sh
 bun .agents/skills/read-slack-messages/scripts/slack.ts status
 ```

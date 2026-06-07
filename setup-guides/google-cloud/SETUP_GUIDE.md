@@ -55,6 +55,12 @@ Alternatively, pin it in the skill's `.env` file (see Step 3).
 
 Copy `env.example` to `.env` inside the skill directory:
 
+**Claude Code**
+```sh
+cp .claude/skills/google-cloud/env.example .claude/skills/google-cloud/.env
+```
+
+**Codex**
 ```sh
 cp .agents/skills/google-cloud/env.example .agents/skills/google-cloud/.env
 ```
@@ -77,16 +83,28 @@ GCLOUD_DEFAULT_ACCOUNT=you@example.com
 
 Run `refresh-context` to discover all accessible accounts, projects, datasets, and Cloud Run services:
 
+**Claude Code**
+```sh
+bun .claude/skills/google-cloud/scripts/gcloud.ts refresh-context
+```
+
+**Codex**
 ```sh
 bun .agents/skills/google-cloud/scripts/gcloud.ts refresh-context
 ```
 
-This writes to `.agents/skills/google-cloud/.data/context.json` (gitignored). It may take a minute if you have many projects.
+This writes to `.claude/skills/google-cloud/.data/context.json` (Claude Code) or `.agents/skills/google-cloud/.data/context.json` (Codex) (gitignored). It may take a minute if you have many projects.
 
 ---
 
 ## Step 5 — Verify
 
+**Claude Code**
+```sh
+bun .claude/skills/google-cloud/scripts/gcloud.ts status
+```
+
+**Codex**
 ```sh
 bun .agents/skills/google-cloud/scripts/gcloud.ts status
 ```

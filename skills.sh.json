@@ -1,0 +1,26 @@
+{
+  "$schema": "https://skills.sh/schema/skills.sh.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Automation",
+      "description": "Skills for delegating tasks to Codex subprocesses — computer use and image generation.",
+      "skills": [
+        "agent-browser-core",
+        "codex-computer-use",
+        "codex-imagegen"
+      ]
+    },
+    {
+      "title": "Integrations",
+      "description": "Skills for reading and working with external services through local account setup.",
+      "skills": [
+        "google-office",
+        "notebooklm",
+        "read-gmail",
+        "read-line-messages",
+        "read-trello-tasks"
+      ]
+    }
+  ]
+}

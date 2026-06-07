@@ -85,7 +85,7 @@ authorizes via a user token, not the client secret.)
 
 ![API key generated](screenshots/05-api-key-generated.png)
 
-Put the key in `.agents/skills/read-trello-tasks/.env`:
+Put the key in the skill's `.env`:
 
 ```dotenv
 TRELLO_API_KEY=your_api_key_here
@@ -115,6 +115,12 @@ origins** and click **Add**. It should appear in the list below the field.
 
 From the repo root:
 
+**Claude Code**
+```sh
+bun .claude/skills/read-trello-tasks/scripts/trello.ts login
+```
+
+**Codex**
 ```sh
 bun .agents/skills/read-trello-tasks/scripts/trello.ts login
 ```
@@ -137,6 +143,14 @@ exits.
 
 ## Step 8 — Verify
 
+**Claude Code**
+```sh
+bun .claude/skills/read-trello-tasks/scripts/trello.ts status   # loggedIn: true
+bun .claude/skills/read-trello-tasks/scripts/trello.ts me       # your account
+bun .claude/skills/read-trello-tasks/scripts/trello.ts boards   # visible boards
+```
+
+**Codex**
 ```sh
 bun .agents/skills/read-trello-tasks/scripts/trello.ts status   # loggedIn: true
 bun .agents/skills/read-trello-tasks/scripts/trello.ts me       # your account
@@ -145,6 +159,16 @@ bun .agents/skills/read-trello-tasks/scripts/trello.ts boards   # visible boards
 
 Then drill into a board:
 
+**Claude Code**
+```sh
+bun .claude/skills/read-trello-tasks/scripts/trello.ts lists   --board BOARD_ID
+bun .claude/skills/read-trello-tasks/scripts/trello.ts cards   --board BOARD_ID --limit 50
+bun .claude/skills/read-trello-tasks/scripts/trello.ts card    --id CARD_ID
+bun .claude/skills/read-trello-tasks/scripts/trello.ts actions --board BOARD_ID
+bun .claude/skills/read-trello-tasks/scripts/trello.ts search  --query 'invoice'
+```
+
+**Codex**
 ```sh
 bun .agents/skills/read-trello-tasks/scripts/trello.ts lists   --board BOARD_ID
 bun .agents/skills/read-trello-tasks/scripts/trello.ts cards   --board BOARD_ID --limit 50
@@ -157,6 +181,20 @@ bun .agents/skills/read-trello-tasks/scripts/trello.ts search  --query 'invoice'
 
 ## Resulting `.env`
 
+**Claude Code**
+```dotenv
+# Trello API key from https://trello.com/power-ups/admin
+TRELLO_API_KEY=<your_api_key>
+
+# Optional. Defaults shown.
+TRELLO_APP_NAME=MyApp
+TRELLO_REDIRECT_URI=http://localhost:3458/trello/callback
+TRELLO_SCOPE=read
+TRELLO_EXPIRATION=never
+TRELLO_TOKEN_FILE=.claude/skills/read-trello-tasks/.data/trello-token.json
+```
+
+**Codex**
 ```dotenv
 # Trello API key from https://trello.com/power-ups/admin
 TRELLO_API_KEY=<your_api_key>

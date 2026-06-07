@@ -14,8 +14,8 @@ Read and write Google Drive, Docs, and Sheets through local OAuth tokens. Same a
 ## Important
 
 - Use the script in this skill directory; invoke with `bun`.
-- Secrets live in `.agents/skills/google-office/.env`; never print or read that file into chat.
-- Token storage defaults to `.agents/skills/google-office/.data/accounts/<email>.json`; do not print token contents.
+- Secrets live in `.claude/skills/google-office/.env`; never print or read that file into chat.
+- Token storage defaults to `.claude/skills/google-office/.data/accounts/<email>.json`; do not print token contents.
 - `.env` and `.data/` are gitignored.
 - Default scopes are **read + write** ("interact"). Switch `GOOGLE_SCOPES` in `.env` to the `*.readonly` variants for read-only access (see `env.example`).
 - Write/delete operations change the user's real Drive/Docs/Sheets. Confirm intent before destructive actions (`drive-delete`, overwriting ranges with `sheets-write`).
@@ -25,13 +25,13 @@ Read and write Google Drive, Docs, and Sheets through local OAuth tokens. Same a
 From repo root:
 
 ```sh
-bun .agents/skills/google-office/scripts/office.ts status
+bun .claude/skills/google-office/scripts/office.ts status
 ```
 
 If no account is logged in:
 
 ```sh
-bun .agents/skills/google-office/scripts/office.ts login
+bun .claude/skills/google-office/scripts/office.ts login
 ```
 
 The login command opens Google OAuth and waits for the localhost callback. The authenticated email is detected from the userinfo endpoint and saved as the account key.
@@ -54,9 +54,9 @@ Then run `login`. Each account is logged in separately and reuses the same `.env
 ## Multiple accounts
 
 ```sh
-bun .agents/skills/google-office/scripts/office.ts login
-bun .agents/skills/google-office/scripts/office.ts accounts
-bun .agents/skills/google-office/scripts/office.ts default-account --email you@example.com
+bun .claude/skills/google-office/scripts/office.ts login
+bun .claude/skills/google-office/scripts/office.ts accounts
+bun .claude/skills/google-office/scripts/office.ts default-account --email you@example.com
 ```
 
 Most commands use `--email` when provided, otherwise the default account, otherwise the only logged-in account.
@@ -115,6 +115,43 @@ office.ts sheets-format --id SPREADSHEET_ID --requests JSON-or-path
 - Values are parsed as formulas/numbers/dates by default (USER_ENTERED). Pass `--raw` to store literally.
 - `--requests` for `sheets-format` accepts an inline JSON array or a path to a `.json` file of Sheets API `batchUpdate` request objects.
 
+#### Reusable Google Sheet scripts (`scripts/google-sheet/`)
+
+Higher-level scripts live in `scripts/google-sheet/` and accept any spreadsheet ID via `--id`. Import helpers from `sheet-utils.ts` rather than duplicating logic in ad-hoc scripts.
+
+```sh
+# Apply formal style to any spreadsheet (first tab, with title row)
+bun .claude/skills/google-office/scripts/google-sheet/apply-style.ts --id SPREADSHEET_ID
+
+# Target a specific tab
+bun .claude/skills/google-office/scripts/google-sheet/apply-style.ts --id SPREADSHEET_ID --sheet "Sheet1"
+
+# Data starts with column headers (no merged title row)
+bun .claude/skills/google-office/scripts/google-sheet/apply-style.ts --id SPREADSHEET_ID --no-title-row
+
+# Style tokens live in one place — edit to restyle everything at once
+.claude/skills/google-office/scripts/google-sheet/style.config.ts
+```
+
+**`sheet-utils.ts` exports:**
+- `applyFormalStyle(email, spreadsheetId, opts?)` — full style pass: title merge, header row, alternating banding, borders, freeze, column widths
+- `batchUpdate(email, spreadsheetId, requests)` — low-level Sheets API batchUpdate wrapper
+
+**`SheetStyleOptions`:**
+- `sheetName?: string` — which tab to style (default: first tab)
+- `hasTitleRow?: boolean` — row 0 is a merged title (default: `true`)
+
+**Style defaults (change in `style.config.ts`):**
+
+| Element | Font | Size | Background |
+|---------|------|------|------------|
+| Title row (merged) | Poppins | 14 pt | `#0f2060` deep navy |
+| Column header row | Poppins | 11 pt | `#163872` navy blue |
+| Data rows (even) | Inter | 10 pt | white |
+| Data rows (odd) | Inter | 10 pt | `#eef2fa` light blue |
+
+Column widths: first column 200 px (label), remaining 150 px (default). All tokens in `style.config.ts`.
+
 ### Docs
 
 `--id` is the document ID (from its URL).
@@ -123,7 +160,7 @@ office.ts sheets-format --id SPREADSHEET_ID --requests JSON-or-path
 office.ts docs-get --id DOCUMENT_ID                            # title + plain text
 office.ts docs-create --title "Meeting Notes" --text "First line\n"
 office.ts docs-append --id DOCUMENT_ID --text "Appended paragraph\n"
-office.ts docs-format --id DOCUMENT_ID                         # apply heading styles in-place
+office.ts docs-format --id DOCUMENT_ID                         # detect ALL_CAPS headings, assign named styles
 
 # Insert a table (2-D JSON array; also accepts a path to a .json file)
 office.ts docs-insert-table --id DOCUMENT_ID --values '[["Name","Score"],["Alice",95]]'
@@ -135,44 +172,158 @@ office.ts docs-insert-image --id DOCUMENT_ID --url https://example.com/chart.png
 office.ts docs-insert-image --id DOCUMENT_ID --file ./screenshot.png --width 400 --height 300
 ```
 
-`docs-create` **automatically formats** the document after inserting text — no manual `docs-format` call needed for new docs. `docs-format` is for applying or re-applying styles to an existing doc.
+#### Reusable Google Doc scripts (`scripts/google-doc/`)
 
-**Heading detection:** any line that is fully uppercase and contains ≥ 4 capital letters is treated as a heading. The first such line becomes the document `TITLE`; subsequent ones become `HEADING_2`. All other paragraphs keep `NORMAL_TEXT`. To match an existing doc's style instead, call `docs-get` first and inspect the named styles already in use.
+Higher-level scripts live in `scripts/google-doc/` and accept any doc ID via `--id`. Import helpers from `doc-utils.ts` rather than duplicating logic in ad-hoc scripts.
 
-**Tables:** `docs-insert-table` inserts at the end of the doc by default. Pass `--index N` to insert at a specific position. The `--values` flag accepts an inline 2-D JSON array or a path to a `.json` file.
+```sh
+# Apply formal style (fonts, colours, spacing, margins) to any existing doc
+bun .claude/skills/google-office/scripts/google-doc/apply-style.ts --id DOC_ID
 
-**Images — `--url`:** the URI must be publicly accessible (HTTP/HTTPS). Sizes are in points (72 pt = 1 inch).
+# Style tokens live in one place — edit to restyle everything at once
+.claude/skills/google-office/scripts/google-doc/style.config.ts
+```
 
-**Images — `--file`:** uploads the local file to Google Drive, grants `anyoneWithLink` reader access (required by the Docs API), embeds the image, and returns the Drive file ID. The file stays publicly readable after insertion — delete it or revoke its permission via Drive UI or `drive-delete --id DRIVE_FILE_ID` once the document is finalized.
+**`doc-utils.ts` exports:**
+- `applyFormalStyle(email, docId)` — full style pass: margins, title, headings, body
+- `insertStyledTable(email, docId, insertIndex, values)` — inserts a table with styled header row
+- `insertImage(email, docId, insertIndex, uri, width?, height?)` — inserts and centres an image
+- `findEnd(content, needle)` / `findStart(content, needle)` — locate paragraphs by text
 
-## Styling
+**Style defaults (change in `style.config.ts`):**
 
-**Always apply proper styling** after creating or significantly editing a Sheet or Doc. Never leave a newly created file with default plain formatting.
+| Element | Font | Size |
+|---------|------|------|
+| Title | Poppins | 22 pt |
+| Heading 1 | Poppins | 16 pt |
+| Heading 2 | Poppins | 14 pt |
+| Heading 3 | Poppins | 12 pt |
+| Body | Inter | 11 pt |
+| Table | Inter | 10.5 pt |
 
-### For new Google Sheets
+Colour palette: deep navy title (`#0f2060`), navy-blue headings (`#163872`), table header (`#163872`/white), muted grey captions (`#666666`). All tokens are in `style.config.ts`.
 
-After writing data, call `sheets-format` with a `batchUpdate` requests array that covers:
+---
 
-1. **Title row** — merge across all columns; dark background (e.g. navy `#1a237e`), white bold text, centered, padded.
-2. **Section / table headers** — bold, medium-color background matching the title palette, white text.
-3. **Column headers** — bold, slightly lighter variant of the header color, white text.
-4. **Data rows** — alternating white / very-light-gray banding (`addBanding` request) for readability.
-5. **Special rows** — highlight notable rows (e.g. launch week, spikes, totals) with a distinct accent color.
-6. **Borders** — `updateBorders` with a medium outer border and thin inner grid in a color consistent with the palette.
-7. **Column widths** — `updateDimensionProperties` sized to content (label columns ~150–180 px, number columns ~110 px, note columns ~200 px).
-8. **Freeze** — freeze the title row (and table header row if applicable) via `updateSheetProperties`.
+## Styling — Hard Rules
 
-Colors are specified as `{ red, green, blue }` floats (0.0–1.0). Pick a consistent palette (e.g. one dark anchor color + one medium variant + light tint for section headers).
+> These rules are non-negotiable. Apply them on every Google Doc operation.
 
-### For existing Google Sheets
+### 1. Plan structure BEFORE writing content
 
-Before writing data or adding a sheet, call `sheets-get` to check existing tabs, then `sheets-read` a sample range and inspect any existing header rows. Mirror the colors, bold style, and column widths already present rather than introducing a new palette.
+Before creating or significantly editing a Google Doc, explicitly decide:
 
-### For Google Docs
+- **Sections** — what top-level sections does the document need?
+- **Tables** — what comparative, statistical, or reference data should be a table instead of prose?
+- **Bullet points** — what lists of items, features, or attributes should be bulleted?
+- **Numbered lists** — what sequential steps, ranked items, or ordered processes should be numbered?
 
-**New docs:** `docs-create --text` automatically applies heading styles — no extra step needed. Structure your text so section headers are fully uppercase (e.g. `KEY METRICS`, `RECOMMENDATIONS`).
+Do not start writing prose until the outline is clear. Documents that contain only paragraphs are unacceptable — structure information visually wherever it helps the reader.
 
-**Existing docs:** call `docs-format --id ID` to detect and apply heading styles in place. Before doing so, call `docs-get --id ID` to inspect any named styles already applied; if the doc already has a custom heading palette, use the Docs API `batchUpdate` (`updateTextStyle` / `updateParagraphStyle`) directly via the `api` helper in `lib.ts` to match the existing style rather than resetting to defaults.
+### 2. Always use structured content
+
+Every Google Doc must include the appropriate mix of:
+
+| Content type | Use when |
+|---|---|
+| **Table** | Comparing options, listing specs/stats, timelines with 2+ columns, pros-vs-cons |
+| **Bullet list** | Unordered features, characteristics, requirements, observations |
+| **Numbered list** | Steps, ranked priorities, sequential processes |
+| **Prose paragraphs** | Narrative explanation, context, analysis — not raw data |
+
+A document that is only bullets, or only prose, is a signal that structure has not been thought through.
+
+### 3. Always apply formal styling — never leave a doc unstyled
+
+**For every new doc:**
+1. Write the text with ALL_CAPS section headers (e.g. `EXECUTIVE SUMMARY`, `KEY FINDINGS`).
+2. Run `docs-create --text` (which auto-applies named styles) then immediately run:
+   ```sh
+   bun .claude/skills/google-office/scripts/google-doc/apply-style.ts --id DOC_ID
+   ```
+3. Insert all tables using `insertStyledTable` from `doc-utils.ts` — never use unstyled `docs-insert-table` for new content.
+
+**For existing docs:**
+1. Call `docs-get --id ID` to read current content and named styles.
+2. If the doc uses default Google fonts (Arial/Calibri) with no custom colours, apply the formal style:
+   ```sh
+   bun .claude/skills/google-office/scripts/google-doc/apply-style.ts --id DOC_ID
+   ```
+3. If the doc already has a custom style, mirror it — do not override with the default palette.
+
+**Never** leave a newly created document with:
+- Default Google font (Arial)
+- No heading colours
+- No page margin adjustment
+- Plain unformatted tables
+
+### 4. Default font stack
+
+| Role | Font |
+|------|------|
+| Title, all headings | **Poppins** |
+| Body text, table cells, captions | **Inter** |
+
+Both fonts are available in Google Docs without installation. Do not use Arial, Calibri, or Times New Roman unless the user explicitly requests them.
+
+### 5. Writing ad-hoc doc scripts
+
+When you need to write a one-off script for a specific doc (e.g. enriching content, batch-inserting tables):
+
+- Place the script in `scripts/google-doc/` (not directly in `scripts/`).
+- Accept doc ID via `--id DOC_ID` — never hardcode an ID.
+- Import helpers from `./doc-utils.ts` and style tokens from `./style.config.ts`.
+- Delete or generalise the script after use so the folder stays clean.
+
+---
+
+## Styling — Google Sheets — Hard Rules
+
+> These rules are non-negotiable. Apply them on every Google Sheet operation.
+
+### 1. Always apply formal styling — never leave a sheet unstyled
+
+**For every new sheet:**
+1. Write data with `sheets-write` or `sheets-append`.
+2. Immediately run:
+   ```sh
+   bun .claude/skills/google-office/scripts/google-sheet/apply-style.ts --id SPREADSHEET_ID
+   ```
+   Add `--no-title-row` if row 0 is already the column-header row (no separate title).
+
+**For existing sheets:**
+1. Call `sheets-get --id ID` to inspect existing tabs.
+2. Call `sheets-read` on a sample range to check whether headers are already styled.
+3. If the sheet uses default Google styling (no custom colours, no frozen rows), apply formal style:
+   ```sh
+   bun .claude/skills/google-office/scripts/google-sheet/apply-style.ts --id SPREADSHEET_ID --sheet "Tab Name"
+   ```
+4. If the sheet already has a custom palette, mirror it — do not override with the default palette.
+
+**Never** leave a newly created sheet with:
+- Default font (Arial)
+- No background on the header row
+- No alternating row banding
+- No frozen rows
+- Default column widths
+
+### 2. Default font stack
+
+| Role | Font |
+|------|------|
+| Title row, column headers | **Poppins** |
+| Data cells, body content | **Inter** |
+
+### 3. Writing ad-hoc sheet scripts
+
+When you need a one-off script for a specific spreadsheet:
+
+- Place it in `scripts/google-sheet/` (not directly in `scripts/`).
+- Accept the spreadsheet ID via `--id` — never hardcode an ID.
+- Import helpers from `./sheet-utils.ts` and tokens from `./style.config.ts`.
+- Delete or generalise the script after use so the folder stays clean.
+
+---
 
 ## Output discipline
 

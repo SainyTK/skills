@@ -33,17 +33,45 @@ https://console.cloud.google.com/apis/library/gmail.googleapis.com?project=YOUR_
 
 If this is a brand-new project with no OAuth credentials, GCP requires a consent screen before you can create a client.
 
-Go to **APIs & Services → OAuth consent screen**:
+Go to **APIs & Services → OAuth consent screen** (or **Google Auth Platform → Branding** in the newer console layout).
 
-- **User type**: choose **External** (personal Google accounts) or **Internal** (Google Workspace orgs only).
-- Fill in **App name** and **User support email**.
-- Click **Save and Continue** through the remaining steps — you can skip optional scopes at this stage.
+> If the consent screen is already configured (existing project), skip this step.
 
-**External apps in Testing mode** — you must add your own Google account as a test user or the OAuth flow will be blocked. Navigate to **Google Auth Platform → Audience**, click **Back to testing** if status shows "In production", then scroll to **Test users → Add users** and enter your email.
+### 2a — User type
+
+Choose **External** (personal Google accounts and any Google account) or **Internal** (Google Workspace orgs only). For personal use, pick **External**.
+
+### 2b — App information
+
+Fill in the required fields:
+
+| Field | Notes |
+|-------|-------|
+| **App name** | Shown on the consent screen, e.g. `My Gmail Agent` |
+| **User support email** | Your email address |
+| **Developer contact information** | Your email address (required — easy to miss, at the bottom of the form) |
+
+All other fields (logo, homepage, privacy policy, terms of service) are optional — leave them blank.
+
+Click **Save and Continue**.
+
+### 2c — Scopes
+
+You do not need to add any scopes here — the skill requests scopes at runtime. Click **Save and Continue**.
+
+### 2d — Test users
+
+Because the app is in **Testing** mode, only explicitly listed Google accounts can complete the OAuth flow.
+
+Click **Add users** and enter your Google account email. Click **Save and Continue**.
+
+> **If you skipped adding a test user here**, you can add one later: go to **Google Auth Platform → Audience**, scroll to **Test users → Add users**, and enter your email. If the status shows "In production", click **Back to testing** first.
 
 ![Audience page — Back to testing and Test users](screenshots/03-audience-testing.png)
 
-> If the consent screen is already configured (existing project), skip this step.
+### 2e — Summary
+
+Review the summary and click **Back to dashboard**. The consent screen is now configured.
 
 ---
 
@@ -90,6 +118,12 @@ A dialog appears showing your **Client ID** and **Client secret**.
 
 Copy `env.example` to `.env` inside the skill directory:
 
+**Claude Code**
+```sh
+cp .claude/skills/read-gmail/env.example .claude/skills/read-gmail/.env
+```
+
+**Codex**
 ```sh
 cp .agents/skills/read-gmail/env.example .agents/skills/read-gmail/.env
 ```
@@ -113,14 +147,26 @@ GMAIL_SCOPES=https://www.googleapis.com/auth/gmail.readonly
 
 From the repo root:
 
+**Claude Code**
+```sh
+bun .claude/skills/read-gmail/scripts/gmail.ts login
+```
+
+**Codex**
 ```sh
 bun .agents/skills/read-gmail/scripts/gmail.ts login
 ```
 
-A browser window opens the Google OAuth consent screen. Sign in and approve the requested permissions. The token is saved to `.agents/skills/read-gmail/.data/accounts/<email>.json`.
+A browser window opens the Google OAuth consent screen. Sign in and approve the requested permissions. The token is saved to `.claude/skills/read-gmail/.data/accounts/<email>.json` (Claude Code) or `.agents/skills/read-gmail/.data/accounts/<email>.json` (Codex).
 
 Verify:
 
+**Claude Code**
+```sh
+bun .claude/skills/read-gmail/scripts/gmail.ts status
+```
+
+**Codex**
 ```sh
 bun .agents/skills/read-gmail/scripts/gmail.ts status
 ```

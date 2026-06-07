@@ -205,6 +205,48 @@ Colour palette: deep navy title (`#0f2060`), navy-blue headings (`#163872`), tab
 
 ---
 
+## Google Docs API — Hard Rules
+
+> These rules prevent structural failures that require a full document rebuild to fix.
+
+### 1. Never pass multi-paragraph text as a single `--text` argument
+
+`docs-create --text "...\n\n..."` or `docs-append` with a long multi-line string stores everything in **one giant text run** as a single paragraph element. Named styles (`TITLE`, `HEADING_1`) can only target separate paragraph elements — not character ranges inside one blob. `applyFormalStyle` and `docs-format` will silently do nothing useful.
+
+**Rule:** For any document with headings or distinct sections, insert each paragraph as a **separate API call** (loop, calling `docs-append` once per paragraph). Never pass more than one paragraph of content in a single `--text` argument.
+
+### 2. Image insertion index is `el.startIndex`, not `el.startIndex + 1`
+
+To embed an image inside a blank paragraph `[S–E]`, use `insertIndex = S` (the paragraph's `startIndex`). Using `S + 1` equals the next paragraph's `startIndex` — the image silently merges into that paragraph (e.g. into a `HEADING_1`).
+
+**Rule:** When inserting an image into a blank paragraph, set `insertIndex = el.startIndex`.
+
+### 3. After `insertTable`, reset ghost `HEADING_1` empty paragraphs
+
+The Docs API auto-creates an empty paragraph immediately before every inserted table. That paragraph inherits the named style from the surrounding context. If the insertion point is near a `HEADING_1`, the ghost paragraph becomes a `HEADING_1` too — visible as oversized blank space.
+
+**Rule:** After every table insertion, re-fetch the document and scan `body.content` for paragraphs with `namedStyleType === 'HEADING_1'` and empty text. Batch-reset them to `NORMAL_TEXT`.
+
+### 4. `findEnd`/`findStart` only work when paragraphs are separate structural elements
+
+These helpers iterate `body.content` looking for `paragraph` elements whose joined text includes the needle. If the document was built incorrectly (all text in one paragraph), `findEnd` returns the end of the entire document, causing `insertInlineImage` to fail with *"index must be less than end index"*.
+
+**Rule:** Only use `findEnd`/`findStart` after verifying the document has proper paragraph structure. If `body.content.length ≤ 3` for a multi-section document, the structure is broken — rebuild before proceeding.
+
+### 5. Verify document structure before inserting images or tables
+
+After creating a document, check `body.content` element count. A multi-section document with only 2–3 elements means everything is in one blob. Inserting images or tables into a broken structure produces wrong indices and silent API failures.
+
+**Rule:** After `docs-create`, verify paragraph count roughly matches section count before any `insertImage` or `insertTable` call:
+
+```ts
+const paraCount = content.filter(e => e.paragraph).length;
+// A 7-section doc should have 20+ paragraph elements
+if (paraCount < 10) throw new Error('Document structure broken — rebuild first');
+```
+
+---
+
 ## Styling — Hard Rules
 
 > These rules are non-negotiable. Apply them on every Google Doc operation.

@@ -39,3 +39,13 @@ Skills for reading and working with external services through local account setu
 - **[read-gmail](./skills/integrations/read-gmail/SKILL.md)** — Read and search Gmail messages for one or more Google accounts via local OAuth.
 - **[read-line-messages](./skills/integrations/read-line-messages/SKILL.md)** — Read LINE desktop chats from screenshots with accurate transcription.
 - **[read-trello-tasks](./skills/integrations/read-trello-tasks/SKILL.md)** — Read Trello boards, lists, cards, and checklist tasks.
+
+---
+
+## Community Skills
+
+Skills from other repos that are worth following:
+
+- **[grill-me](https://github.com/mattpocock/skills)** (mattpocock/skills) — Interview the user relentlessly about a plan or design until reaching shared understanding.
+- **[caveman](https://github.com/juliusbrussee/caveman)** — Make agent talk like caveman — cuts ~75% of output tokens while keeping full technical accuracy.
+- **[unleak](https://github.com/SainyTK/unleak)** — Local database access guardrails for AI agents — control column-by-column what the agent can see, mask personal data, and reduce sensitive data leakage.

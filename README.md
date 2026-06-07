@@ -16,8 +16,14 @@ Equip ultimate skills to any of your AI agents.
 
 Install via [skills.sh](https://skills.sh):
 
+**Claude Code**
 ```bash
-npx skills@latest add SainyTK/sainy
+npx skills@latest add SainyTK/skills -a claude-code
+```
+
+**Codex**
+```bash
+npx skills@latest add SainyTK/skills -a codex
 ```
 
 ## Reference

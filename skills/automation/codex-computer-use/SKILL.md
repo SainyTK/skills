@@ -1,5 +1,6 @@
 ---
 name: codex-computer-use
+version: 0.0.1
 description: >
   Run Codex non-interactively to complete desktop GUI tasks with Computer Use.
   Use when the user asks to delegate a Mac app/browser UI task to a Codex

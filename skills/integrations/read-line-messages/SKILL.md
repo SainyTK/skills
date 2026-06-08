@@ -1,5 +1,6 @@
 ---
 name: read-line-messages
+version: 0.0.1
 description: >
   Read messages from the LINE desktop app accurately by screenshotting the
   conversation and transcribing the images verbatim. Use when the user asks to

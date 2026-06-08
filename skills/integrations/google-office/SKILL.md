@@ -1,15 +1,16 @@
 ---
 name: google-office
+version: 0.1.0
 description: >
-  Interact with Google Drive, Google Docs, and Google Sheets for one or more
-  local Google accounts via OAuth. Use when the user asks to list/search/
-  download/upload Drive files, read or edit a Google Sheet, or read/create/
-  append to a Google Doc.
+  Interact with Google Drive, Google Docs, Google Sheets, and Gmail for one or
+  more local Google accounts via OAuth. Use when the user asks to list/search/
+  download/upload Drive files, read or edit a Google Sheet, read/create/append
+  to a Google Doc, or read/draft/send Gmail messages.
 ---
 
 # google-office
 
-Read and write Google Drive, Docs, and Sheets through local OAuth tokens. Same auth mechanism as the `read-gmail` skill (localhost OAuth callback, multi-account token storage), with one shared OAuth client configured in `.env`.
+Read and write Google Drive, Docs, Sheets, and Gmail through local OAuth tokens. Multi-account token storage with one shared OAuth client configured in `.env`.
 
 ## Important
 
@@ -17,8 +18,9 @@ Read and write Google Drive, Docs, and Sheets through local OAuth tokens. Same a
 - Secrets live in `.claude/skills/google-office/.env`; never print or read that file into chat.
 - Token storage defaults to `.claude/skills/google-office/.data/accounts/<email>.json`; do not print token contents.
 - `.env` and `.data/` are gitignored.
-- Default scopes are **read + write** ("interact"). Switch `GOOGLE_SCOPES` in `.env` to the `*.readonly` variants for read-only access (see `env.example`).
+- Default scopes are **read + write** across Drive, Docs, Sheets, and Gmail. Switch `GOOGLE_SCOPES` in `.env` to the `*.readonly` variants for read-only access (see `env.example`).
 - Write/delete operations change the user's real Drive/Docs/Sheets. Confirm intent before destructive actions (`drive-delete`, overwriting ranges with `sheets-write`).
+- **Gmail send operations** (`gmail-send`, `gmail-send-draft`, `gmail-reply`) send real email. Always confirm with the user before executing any send command — see Gmail Hard Rules below.
 
 ## Setup / status
 
@@ -38,18 +40,20 @@ The login command opens Google OAuth and waits for the localhost callback. The a
 
 ## OAuth setup (one time)
 
-You can reuse the **same OAuth client** as `read-gmail`. Copy its client id/secret into this skill's `.env` (as `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`). Then, in Google Cloud Console for that client:
+In Google Cloud Console, create or reuse an OAuth client:
 
-1. Enable the **Google Drive API**, **Google Docs API**, and **Google Sheets API** for the project.
+1. Enable **Google Drive API**, **Google Docs API**, **Google Sheets API**, and **Gmail API** for the project.
 2. Add this authorized redirect URI (Web app clients only — Desktop app clients accept any loopback automatically):
 
    ```txt
    http://localhost:3457/office/callback
    ```
 
-3. Ensure the consent screen grants the scopes in `GOOGLE_SCOPES`.
+3. Ensure the consent screen grants the scopes in `GOOGLE_SCOPES` (see `env.example`).
 
 Then run `login`. Each account is logged in separately and reuses the same `.env`.
+
+> **Existing users:** If you previously logged in without the Gmail scope, run `login` again to re-authorize with the updated scope set.
 
 ## Multiple accounts
 
@@ -364,6 +368,70 @@ When you need a one-off script for a specific spreadsheet:
 - Accept the spreadsheet ID via `--id` — never hardcode an ID.
 - Import helpers from `./sheet-utils.ts` and tokens from `./style.config.ts`.
 - Delete or generalise the script after use so the folder stays clean.
+
+---
+
+### Gmail
+
+```sh
+# Search messages (Gmail search syntax)
+office.ts gmail-search --query "from:alice@example.com newer_than:7d has:attachment" --limit 20
+
+# Recent inbox
+office.ts gmail-inbox --limit 20
+
+# Read a message (use ID from search)
+office.ts gmail-read --id MSG_ID --format full
+
+# Download attachment (use IDs from gmail-read --format full)
+office.ts gmail-download-attachment --message-id MSG_ID --attachment-id ATT_ID --filename invoice.pdf
+
+# Create a draft (saves to Drafts, does NOT send)
+office.ts gmail-create-draft --to alice@example.com,bob@example.com --subject "Hello" --body "Hi there"
+office.ts gmail-create-draft --to alice@example.com --subject "Re: Ticket" --body "Thanks" --reply-to-id ORIG_MSG_ID
+
+# Send an existing draft by its draft ID
+office.ts gmail-send-draft --id DRAFT_ID
+
+# Send a new email directly (CONFIRM WITH USER FIRST)
+office.ts gmail-send --to alice@example.com --subject "Hello" --body "Hi there"
+
+# Reply to a message (CONFIRM WITH USER FIRST)
+office.ts gmail-reply --reply-to-id ORIG_MSG_ID --body "Thanks for reaching out"
+```
+
+Common Gmail search operators: `from:`, `to:`, `subject:`, `in:inbox`, `in:sent`, `has:attachment`, `newer_than:7d`, `is:unread`, `label:`.
+
+---
+
+## Gmail — Hard Rules
+
+> These rules are non-negotiable for all Gmail send operations.
+
+### 1. Always confirm before sending
+
+Before executing `gmail-send`, `gmail-send-draft`, or `gmail-reply`, **always** show the user the full email details and ask for explicit confirmation:
+
+- **To** (and Cc/Bcc if set)
+- **Subject**
+- **Body** (full text)
+
+Do not proceed until the user confirms. This rule applies even if the user previously asked you to draft and send in the same request.
+
+### 2. Prefer draft → review → send
+
+When composing on behalf of the user, the recommended flow is:
+
+1. Run `gmail-create-draft` to save the draft.
+2. Show the draft details to the user for review.
+3. Only run `gmail-send-draft --id DRAFT_ID` after the user confirms.
+
+Skipping straight to `gmail-send` is acceptable only when the user explicitly says to send immediately and you have shown them the full email content first.
+
+### 3. Never expose tokens or message contents beyond what the user needs
+
+- Do not print raw token data or `.env` contents.
+- Message bodies may contain sensitive personal data — only quote what the user needs.
 
 ---
 

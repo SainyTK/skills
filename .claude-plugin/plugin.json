@@ -6,8 +6,8 @@
     "./skills/automation/codex-imagegen",
     "./skills/integrations/google-office",
     "./skills/integrations/notebooklm",
-    "./skills/integrations/read-gmail",
     "./skills/integrations/read-line-messages",
+    "./skills/integrations/read-slack-messages",
     "./skills/integrations/read-trello-tasks"
   ]
 }

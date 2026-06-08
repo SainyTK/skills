@@ -1,5 +1,6 @@
 ---
 name: codex-imagegen
+version: 0.0.1
 description: >
   Generate raster images with the codex_imagegen tool. Use whenever the user asks
   to create, generate, render, draw, or make a raster image, wallpaper, PNG/JPG/WebP,

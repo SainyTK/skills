@@ -1,5 +1,6 @@
 ---
 name: agent-browser-core
+version: 0.0.1
 description: Self-contained agent-browser workflow — browser execution first, real browser profiles for auth, no extra "skills get" round-trips. Use for navigating pages, snapshots, clicking, filling forms, screenshots, video capture, authenticated sites via existing Brave/Chrome profiles, and multiple agents working in separate tabs in the default session. Prefer this over for everyday browser automation.
 allowed-tools: Bash(agent-browser:*)
 ---

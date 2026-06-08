@@ -202,6 +202,39 @@ async function gmailDownload(path: string, email?: string) {
   return data;
 }
 
+async function gmailApiPost(path: string, email: string | undefined, body: unknown) {
+  const token = await accessToken(email);
+  const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) die(`Gmail API failed: ${data.error?.message || response.statusText}`);
+  return data;
+}
+
+function buildRfc2822(fields: { from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string; inReplyTo?: string; references?: string }) {
+  const lines: string[] = [];
+  lines.push(`From: ${fields.from}`);
+  lines.push(`To: ${fields.to.join(', ')}`);
+  if (fields.cc?.length) lines.push(`Cc: ${fields.cc.join(', ')}`);
+  if (fields.bcc?.length) lines.push(`Bcc: ${fields.bcc.join(', ')}`);
+  lines.push(`Subject: ${fields.subject}`);
+  lines.push('MIME-Version: 1.0');
+  lines.push('Content-Type: text/plain; charset=UTF-8');
+  lines.push('Content-Transfer-Encoding: 8bit');
+  if (fields.inReplyTo) lines.push(`In-Reply-To: ${fields.inReplyTo}`);
+  if (fields.references) lines.push(`References: ${fields.references}`);
+  lines.push('');
+  lines.push(fields.body);
+  return lines.join('\r\n');
+}
+
+function toBase64Url(str: string) {
+  return Buffer.from(str).toString('base64').replace(/\+/g, '-').replace(/\//g, '/').replace(/=+$/, '');
+}
+
 function oauthUrl(state: string, pkce?: PkcePair) {
   requireOAuthConfig();
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -380,7 +413,7 @@ async function main() {
   const args = parseArgs(rest);
   const email = typeof args.email === 'string' ? args.email : undefined;
   if (cmd === 'help') {
-    console.log(`Usage: bun .agents/skills/read-gmail/scripts/gmail.ts <command> [options]\n\nCommands: status, login, accounts, default-account, logout, search, inbox, read, download-attachment\n`);
+    console.log(`Usage: bun .agents/skills/read-gmail/scripts/gmail.ts <command> [options]\n\nCommands: status, login, accounts, default-account, logout, search, inbox, read, download-attachment, create-draft\n`);
     return;
   }
   if (cmd === 'status') {
@@ -428,6 +461,38 @@ async function main() {
     await mkdir(dirname(outPath), { recursive: true });
     await writeFile(outPath, bytes);
     return print({ email: resolved, path: outPath, bytes: bytes.length });
+  }
+  if (cmd === 'create-draft') {
+    const resolved = await resolveEmail(email);
+    const to = String(args.to || '').split(',').map(s => s.trim()).filter(Boolean);
+    const cc = String(args.cc || '').split(',').map(s => s.trim()).filter(Boolean);
+    const bcc = String(args.bcc || '').split(',').map(s => s.trim()).filter(Boolean);
+    const subject = String(args.subject || '');
+    const body = String(args.body || '');
+    const replyToId = typeof args['reply-to-id'] === 'string' ? args['reply-to-id'] : undefined;
+    if (!to.length) die('Missing --to');
+    if (!body) die('Missing --body');
+
+    let inReplyTo: string | undefined;
+    let references: string | undefined;
+    let threadId: string | undefined;
+
+    if (replyToId) {
+      const orig = await getMessage(replyToId, resolved, 'metadata') as GmailMessage;
+      threadId = orig.threadId;
+      const msgIdHeader = orig.payload?.headers?.find(h => h.name.toLowerCase() === 'message-id')?.value;
+      const refsHeader = orig.payload?.headers?.find(h => h.name.toLowerCase() === 'references')?.value;
+      if (msgIdHeader) {
+        inReplyTo = msgIdHeader;
+        references = [refsHeader, msgIdHeader].filter(Boolean).join(' ').trim();
+      }
+    }
+
+    const raw = buildRfc2822({ from: resolved, to, cc, bcc, subject, body, inReplyTo, references });
+    const draft = await gmailApiPost('drafts', resolved, {
+      message: { raw: toBase64Url(raw), ...(threadId ? { threadId } : {}) },
+    });
+    return print({ email: resolved, draftId: draft.id, threadId: draft.message?.threadId });
   }
   die(`Unknown command: ${cmd}`);
 }

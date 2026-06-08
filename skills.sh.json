@@ -17,8 +17,8 @@
       "skills": [
         "google-office",
         "notebooklm",
-        "read-gmail",
         "read-line-messages",
+        "read-slack-messages",
         "read-trello-tasks"
       ]
     }

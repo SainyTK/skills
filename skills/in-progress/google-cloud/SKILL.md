@@ -1,5 +1,6 @@
 ---
 name: google-cloud
+version: 0.0.1
 description: >
   Inspect and analyze Google Cloud resources — BigQuery datasets, tables, query
   jobs, and Cloud Logging — using local gcloud/bq CLI credentials. Use when the

@@ -1,5 +1,6 @@
 ---
 name: read-gmail
+version: 0.0.1
 description: >
   Read/search Gmail messages for one or more local Google accounts via OAuth.
   Use when the user asks to read, check, search, summarize, inspect, or

@@ -15,3 +15,13 @@ Whenever the skill structure changes — adding, removing, or moving a skill bet
 
 - Each grouping's `skills` array lists the skill folder names (not display names) for that category.
 - Only skills in `automation/` and `integrations/` appear in `skills.sh.json`. Skills in `in-progress/` and `deprecated/` must be omitted.
+
+## Skill versioning
+
+Every `SKILL.md` has a `version` field in its frontmatter (e.g. `version: 0.0.1`). Bump the patch version (the third number) every time any part of the skill changes — instructions, scripts, commands, config, or metadata. Use semantic versioning:
+
+- **patch** (`0.0.x`) — any update to an existing skill (instructions, examples, fix, config tweak)
+- **minor** (`0.x.0`) — new commands, new scripts, or backward-compatible capability added
+- **major** (`x.0.0`) — breaking change: renamed commands, removed features, changed auth flow
+
+Always increment the version when editing a `SKILL.md` or any file under that skill's folder.

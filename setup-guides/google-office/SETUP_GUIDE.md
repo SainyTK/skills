@@ -1,6 +1,6 @@
 # google-office — Setup Guide
 
-How to create and configure a Google OAuth 2.0 client so the skill can read and write Drive, Docs, and Sheets on behalf of your Google account.
+How to create and configure a Google OAuth 2.0 client so the skill can read and write Drive, Docs, Sheets, and Gmail on behalf of your Google account.
 
 ---
 
@@ -24,6 +24,7 @@ Search for and enable each of the following APIs. For each: click the API name, 
 | Google Drive API | List, upload, download files |
 | Google Docs API | Read and write Docs |
 | Google Sheets API | Read and write Sheets |
+| Gmail API | Read, draft, and send email |
 
 ![API already enabled — Manage + API Enabled badge](screenshots/02-apis-enabled.png)
 
@@ -126,12 +127,12 @@ Edit `.env` and fill in the values you copied:
 GOOGLE_CLIENT_ID=<paste Client ID here>
 GOOGLE_CLIENT_SECRET=<paste Client secret here>
 GOOGLE_REDIRECT_URI=http://localhost:3457/office/callback
-GOOGLE_SCOPES=https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email
+GOOGLE_SCOPES=https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/gmail.modify
 ```
 
 > **Desktop app** clients automatically accept any `localhost` loopback redirect URI — you do not need to register `http://localhost:3457/office/callback` anywhere in the GCP console.
 
-> **Reusing credentials:** If you already have a Desktop-type OAuth client (e.g., from the `read-gmail` skill), you can paste the same Client ID and Secret here — no extra console changes needed.
+> **Existing google-office users:** If you previously set up this skill without Gmail, run `login` again after updating `.env` — your account will re-authorize with the expanded scope set. Your old token is replaced automatically.
 
 ---
 

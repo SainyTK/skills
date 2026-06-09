@@ -40,6 +40,7 @@ export const config = {
     'https://www.googleapis.com/auth/documents',
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/gmail.modify',
   ].join(' '),
   tokenDir: process.env.GOOGLE_TOKEN_DIR || join(skillDir, '.data', 'accounts'),
   defaultAccountFile: process.env.GOOGLE_DEFAULT_ACCOUNT_FILE || join(skillDir, '.data', 'default-account'),

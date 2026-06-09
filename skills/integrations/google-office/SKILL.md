@@ -1,6 +1,6 @@
 ---
 name: google-office
-version: 0.1.0
+version: 0.1.1
 description: >
   Interact with Google Drive, Google Docs, Google Sheets, and Gmail for one or
   more local Google accounts via OAuth. Use when the user asks to list/search/

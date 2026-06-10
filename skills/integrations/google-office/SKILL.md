@@ -1,6 +1,6 @@
 ---
 name: google-office
-version: 0.1.1
+version: 0.1.2
 description: >
   Interact with Google Drive, Google Docs, Google Sheets, and Gmail for one or
   more local Google accounts via OAuth. Use when the user asks to list/search/
@@ -18,7 +18,7 @@ Read and write Google Drive, Docs, Sheets, and Gmail through local OAuth tokens.
 - Secrets live in `.claude/skills/google-office/.env`; never print or read that file into chat.
 - Token storage defaults to `.claude/skills/google-office/.data/accounts/<email>.json`; do not print token contents.
 - `.env` and `.data/` are gitignored.
-- Default scopes are **read + write** across Drive, Docs, Sheets, and Gmail. Switch `GOOGLE_SCOPES` in `.env` to the `*.readonly` variants for read-only access (see `env.example`).
+- Default scopes are **read + write** across Drive, Docs, Sheets, and Gmail. Switch `GOOGLE_SCOPES` in `.env` to the `*.readonly` variants for read-only access (see `.env.example`).
 - Write/delete operations change the user's real Drive/Docs/Sheets. Confirm intent before destructive actions (`drive-delete`, overwriting ranges with `sheets-write`).
 - **Gmail send operations** (`gmail-send`, `gmail-send-draft`, `gmail-reply`) send real email. Always confirm with the user before executing any send command — see Gmail Hard Rules below.
 
@@ -49,7 +49,7 @@ In Google Cloud Console, create or reuse an OAuth client:
    http://localhost:3457/office/callback
    ```
 
-3. Ensure the consent screen grants the scopes in `GOOGLE_SCOPES` (see `env.example`).
+3. Ensure the consent screen grants the scopes in `GOOGLE_SCOPES` (see `.env.example`).
 
 Then run `login`. Each account is logged in separately and reuses the same `.env`.
 

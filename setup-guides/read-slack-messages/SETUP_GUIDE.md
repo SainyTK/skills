@@ -49,12 +49,12 @@ Paste them into the skill's `.env`:
 
 **Claude Code**
 ```sh
-cp .claude/skills/read-slack-messages/env.example .claude/skills/read-slack-messages/.env
+cp .claude/skills/read-slack-messages/.env.example .claude/skills/read-slack-messages/.env
 ```
 
 **Codex**
 ```sh
-cp .agents/skills/read-slack-messages/env.example .agents/skills/read-slack-messages/.env
+cp .agents/skills/read-slack-messages/.env.example .agents/skills/read-slack-messages/.env
 ```
 
 ```dotenv

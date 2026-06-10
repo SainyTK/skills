@@ -86,7 +86,7 @@ function die(message: string): never {
 }
 
 function requireOAuthConfig() {
-  if (!config.clientId || !config.clientSecret) die('Missing SLACK_CLIENT_ID or SLACK_CLIENT_SECRET. Put them in .agents/skills/read-slack-messages/.env');
+  if (!config.clientId || !config.clientSecret) die(`Missing SLACK_CLIENT_ID or SLACK_CLIENT_SECRET. Put them in ${envPath}`);
 }
 
 async function readTokenFile(): Promise<TokenFile | null> {
@@ -120,7 +120,7 @@ function tokenSummary(token: TokenFile | null) {
 }
 
 function chooseToken(stored: TokenFile | null, preference: 'any' | 'user' | 'bot' = 'any') {
-  if (!stored) die('Not logged in. Run: bun .agents/skills/read-slack-messages/scripts/slack.ts login');
+  if (!stored) die(`Not logged in. Run: bun ${join(skillDir, 'scripts', 'slack.ts')} login`);
   if (preference === 'user') {
     if (!stored.authed_user?.access_token) die('No user token available. Re-run login.');
     return stored.authed_user.access_token;
@@ -325,7 +325,7 @@ async function main() {
   const [cmd = 'help', ...rest] = process.argv.slice(2);
   const args = parseArgs(rest);
   if (cmd === 'help') {
-    console.log(`Usage: bun .agents/skills/read-slack-messages/scripts/slack.ts <command> [options]\n\nCommands: status, login, logout, list, read, thread, search, download-file, send\n`);
+    console.log(`Usage: bun ${join(skillDir, 'scripts', 'slack.ts')} <command> [options]\n\nCommands: status, login, logout, list, read, thread, search, download-file, send\n`);
     return;
   }
   if (cmd === 'status') return print(tokenSummary(await readTokenFile()));

@@ -91,7 +91,7 @@ Put the key in the skill's `.env`:
 TRELLO_API_KEY=your_api_key_here
 ```
 
-You can copy `env.example` to `.env` as a starting point. The file is
+You can copy `.env.example` to `.env` as a starting point. The file is
 gitignored and should be `chmod 600`.
 
 ---

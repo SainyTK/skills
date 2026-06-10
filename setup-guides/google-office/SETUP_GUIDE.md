@@ -109,16 +109,16 @@ A dialog appears showing your **Client ID** and **Client secret**.
 
 ## Step 6 — Fill in `.env`
 
-Copy `env.example` to `.env` inside the skill directory:
+Copy `.env.example` to `.env` inside the skill directory:
 
 **Claude Code**
 ```sh
-cp .claude/skills/google-office/env.example .claude/skills/google-office/.env
+cp .claude/skills/google-office/.env.example .claude/skills/google-office/.env
 ```
 
 **Codex**
 ```sh
-cp .agents/skills/google-office/env.example .agents/skills/google-office/.env
+cp .agents/skills/google-office/.env.example .agents/skills/google-office/.env
 ```
 
 Edit `.env` and fill in the values you copied:

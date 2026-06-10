@@ -53,16 +53,16 @@ Alternatively, pin it in the skill's `.env` file (see Step 3).
 
 ## Step 3 — Configure the skill (optional)
 
-Copy `env.example` to `.env` inside the skill directory:
+Copy `.env.example` to `.env` inside the skill directory:
 
 **Claude Code**
 ```sh
-cp .claude/skills/google-cloud/env.example .claude/skills/google-cloud/.env
+cp .claude/skills/google-cloud/.env.example .claude/skills/google-cloud/.env
 ```
 
 **Codex**
 ```sh
-cp .agents/skills/google-cloud/env.example .agents/skills/google-cloud/.env
+cp .agents/skills/google-cloud/.env.example .agents/skills/google-cloud/.env
 ```
 
 Edit `.env` to set optional defaults:

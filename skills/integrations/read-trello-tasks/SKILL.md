@@ -1,6 +1,6 @@
 ---
 name: read-trello-tasks
-version: 0.0.1
+version: 0.0.2
 description: >
   Read/search Trello boards, lists, cards, and checklist tasks visible to
   Sainy's logged-in Trello user via a local API-key plus token login. Use when

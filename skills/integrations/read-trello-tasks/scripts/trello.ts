@@ -115,7 +115,7 @@ function die(message: string): never {
 }
 
 function requireApiKey() {
-  if (!config.apiKey) die('Missing TRELLO_API_KEY. Put it in .agents/skills/read-trello-tasks/.env');
+  if (!config.apiKey) die('Missing TRELLO_API_KEY. Put it in .claude/skills/read-trello-tasks/.env (Claude Code) or .agents/skills/read-trello-tasks/.env (Codex)');
 }
 
 async function readTokenFile(): Promise<TokenFile | null> {
@@ -152,7 +152,7 @@ function tokenSummary(token: TokenFile | null) {
 
 async function getToken() {
   const stored = await readTokenFile();
-  if (!stored?.token) die('Not logged in. Run: bun .agents/skills/read-trello-tasks/scripts/trello.ts login');
+  if (!stored?.token) die('Not logged in. Run: bun .claude/skills/read-trello-tasks/scripts/trello.ts login (Claude Code) or bun .agents/skills/read-trello-tasks/scripts/trello.ts login (Codex)');
   return stored.token;
 }
 
@@ -343,7 +343,7 @@ async function main() {
   const [cmd = 'help', ...rest] = process.argv.slice(2);
   const args = parseArgs(rest);
   if (cmd === 'help') {
-    console.log(`Usage: bun .agents/skills/read-trello-tasks/scripts/trello.ts <command> [options]\n\nCommands: status, login, logout, me, boards, lists, cards, card, search, actions\n`);
+    console.log(`Usage: bun .claude/skills/read-trello-tasks/scripts/trello.ts <command> [options]\n       bun .agents/skills/read-trello-tasks/scripts/trello.ts <command> [options]\n\nCommands: status, login, logout, me, boards, lists, cards, card, search, actions\n`);
     return;
   }
   if (cmd === 'status') return print(tokenSummary(await readTokenFile()));

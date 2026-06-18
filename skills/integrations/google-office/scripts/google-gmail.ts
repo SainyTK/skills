@@ -74,7 +74,7 @@ function attachmentList(message: GmailMessage) {
     .map(p => ({ filename: p.filename, mimeType: p.mimeType, size: p.body?.size, attachmentId: p.body?.attachmentId }));
 }
 
-function buildRfc2822(fields: { from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string; inReplyTo?: string; references?: string }) {
+function buildRfc2822(fields: { from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string; htmlBody?: string; inReplyTo?: string; references?: string }) {
   const lines: string[] = [];
   lines.push(`From: ${fields.from}`);
   lines.push(`To: ${fields.to.join(', ')}`);
@@ -82,12 +82,29 @@ function buildRfc2822(fields: { from: string; to: string[]; cc?: string[]; bcc?:
   if (fields.bcc?.length) lines.push(`Bcc: ${fields.bcc.join(', ')}`);
   lines.push(`Subject: ${fields.subject}`);
   lines.push('MIME-Version: 1.0');
-  lines.push('Content-Type: text/plain; charset=UTF-8');
-  lines.push('Content-Transfer-Encoding: 8bit');
   if (fields.inReplyTo) lines.push(`In-Reply-To: ${fields.inReplyTo}`);
   if (fields.references) lines.push(`References: ${fields.references}`);
-  lines.push('');
-  lines.push(fields.body);
+  if (fields.htmlBody) {
+    const boundary = `_boundary_${Date.now().toString(36)}`;
+    lines.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+    lines.push('');
+    lines.push(`--${boundary}`);
+    lines.push('Content-Type: text/plain; charset=UTF-8');
+    lines.push('Content-Transfer-Encoding: 8bit');
+    lines.push('');
+    lines.push(fields.body);
+    lines.push(`--${boundary}`);
+    lines.push('Content-Type: text/html; charset=UTF-8');
+    lines.push('Content-Transfer-Encoding: 8bit');
+    lines.push('');
+    lines.push(fields.htmlBody);
+    lines.push(`--${boundary}--`);
+  } else {
+    lines.push('Content-Type: text/plain; charset=UTF-8');
+    lines.push('Content-Transfer-Encoding: 8bit');
+    lines.push('');
+    lines.push(fields.body);
+  }
   return lines.join('\r\n');
 }
 
@@ -123,7 +140,7 @@ export async function gmailDownloadAttachment(email: string, messageId: string, 
   return { path: outPath, bytes: bytes.length };
 }
 
-export async function gmailCreateDraft(email: string, opts: { to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string; replyToId?: string }) {
+export async function gmailCreateDraft(email: string, opts: { to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string; htmlBody?: string; replyToId?: string }) {
   let inReplyTo: string | undefined;
   let references: string | undefined;
   let threadId: string | undefined;
@@ -139,7 +156,7 @@ export async function gmailCreateDraft(email: string, opts: { to: string[]; cc?:
     }
   }
 
-  const raw = buildRfc2822({ from: email, to: opts.to, cc: opts.cc, bcc: opts.bcc, subject: opts.subject, body: opts.body, inReplyTo, references });
+  const raw = buildRfc2822({ from: email, to: opts.to, cc: opts.cc, bcc: opts.bcc, subject: opts.subject, body: opts.body, htmlBody: opts.htmlBody, inReplyTo, references });
   const draft = await api(`${GMAIL}/drafts`, email, {
     method: 'POST',
     body: { message: { raw: toBase64Url(raw), ...(threadId ? { threadId } : {}) } },
@@ -155,8 +172,8 @@ export async function gmailSendDraft(email: string, draftId: string) {
   return { messageId: result.id, threadId: result.threadId, labelIds: result.labelIds };
 }
 
-export async function gmailSend(email: string, opts: { to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string }) {
-  const raw = buildRfc2822({ from: email, to: opts.to, cc: opts.cc, bcc: opts.bcc, subject: opts.subject, body: opts.body });
+export async function gmailSend(email: string, opts: { to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string; htmlBody?: string }) {
+  const raw = buildRfc2822({ from: email, to: opts.to, cc: opts.cc, bcc: opts.bcc, subject: opts.subject, body: opts.body, htmlBody: opts.htmlBody });
   const result = await api(`${GMAIL}/messages/send`, email, {
     method: 'POST',
     body: { raw: toBase64Url(raw) },
@@ -164,7 +181,7 @@ export async function gmailSend(email: string, opts: { to: string[]; cc?: string
   return { messageId: result.id, threadId: result.threadId, labelIds: result.labelIds };
 }
 
-export async function gmailReply(email: string, replyToId: string, opts: { body: string; cc?: string[]; bcc?: string[] }) {
+export async function gmailReply(email: string, replyToId: string, opts: { body: string; htmlBody?: string; cc?: string[]; bcc?: string[] }) {
   const orig = await getMessage(email, replyToId, 'metadata');
   const threadId = orig.threadId;
   const origSubject = header(orig.payload, 'Subject');
@@ -174,7 +191,7 @@ export async function gmailReply(email: string, replyToId: string, opts: { body:
   const inReplyTo = msgIdHeader;
   const references = [refsHeader, msgIdHeader].filter(Boolean).join(' ').trim();
   const subject = origSubject.startsWith('Re:') ? origSubject : `Re: ${origSubject}`;
-  const raw = buildRfc2822({ from: email, to: [origFrom], cc: opts.cc, bcc: opts.bcc, subject, body: opts.body, inReplyTo, references });
+  const raw = buildRfc2822({ from: email, to: [origFrom], cc: opts.cc, bcc: opts.bcc, subject, body: opts.body, htmlBody: opts.htmlBody, inReplyTo, references });
   const result = await api(`${GMAIL}/messages/send`, email, {
     method: 'POST',
     body: { raw: toBase64Url(raw), threadId },
@@ -208,10 +225,11 @@ export async function handleGmailCmd(cmd: string, args: Record<string, string | 
     const bcc = String(args.bcc || '').split(',').map(s => s.trim()).filter(Boolean);
     const subject = String(args.subject || '');
     const body = String(args.body || '');
+    const htmlBody = typeof args['html-body'] === 'string' ? args['html-body'] : undefined;
     const replyToId = typeof args['reply-to-id'] === 'string' ? args['reply-to-id'] : undefined;
     if (!to.length) die('Missing --to');
     if (!body) die('Missing --body');
-    print({ email, ...(await gmailCreateDraft(email, { to, cc, bcc, subject, body, replyToId })) });
+    print({ email, ...(await gmailCreateDraft(email, { to, cc, bcc, subject, body, htmlBody, replyToId })) });
     return true;
   }
   if (cmd === 'gmail-send-draft') {
@@ -225,19 +243,21 @@ export async function handleGmailCmd(cmd: string, args: Record<string, string | 
     const bcc = String(args.bcc || '').split(',').map(s => s.trim()).filter(Boolean);
     const subject = String(args.subject || '');
     const body = String(args.body || '');
+    const htmlBody = typeof args['html-body'] === 'string' ? args['html-body'] : undefined;
     if (!to.length) die('Missing --to');
     if (!body) die('Missing --body');
-    print({ email, ...(await gmailSend(email, { to, cc, bcc, subject, body })) });
+    print({ email, ...(await gmailSend(email, { to, cc, bcc, subject, body, htmlBody })) });
     return true;
   }
   if (cmd === 'gmail-reply') {
     const replyToId = String(args['reply-to-id'] || args.replyToId || '');
     const body = String(args.body || '');
+    const htmlBody = typeof args['html-body'] === 'string' ? args['html-body'] : undefined;
     const cc = String(args.cc || '').split(',').map(s => s.trim()).filter(Boolean);
     const bcc = String(args.bcc || '').split(',').map(s => s.trim()).filter(Boolean);
     if (!replyToId) die('Missing --reply-to-id');
     if (!body) die('Missing --body');
-    print({ email, ...(await gmailReply(email, replyToId, { body, cc, bcc })) });
+    print({ email, ...(await gmailReply(email, replyToId, { body, htmlBody, cc, bcc })) });
     return true;
   }
   return false;
@@ -258,10 +278,10 @@ Gmail:   gmail-search --query Q [--limit N]
          gmail-inbox [--limit N]
          gmail-read --id MSG_ID [--format full|metadata|raw]
          gmail-download-attachment --message-id MSGID --attachment-id ATTID --filename NAME [--output PATH]
-         gmail-create-draft --to A,B --subject S --body TEXT [--cc C] [--bcc B] [--reply-to-id ID]
+         gmail-create-draft --to A,B --subject S --body TEXT [--html-body HTML] [--cc C] [--bcc B] [--reply-to-id ID]
          gmail-send-draft --id DRAFT_ID
-         gmail-send --to A,B --subject S --body TEXT [--cc C] [--bcc B]
-         gmail-reply --reply-to-id MSG_ID --body TEXT [--cc C] [--bcc B]
+         gmail-send --to A,B --subject S --body TEXT [--html-body HTML] [--cc C] [--bcc B]
+         gmail-reply --reply-to-id MSG_ID --body TEXT [--html-body HTML] [--cc C] [--bcc B]
 `);
     return;
   }

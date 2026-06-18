@@ -1,6 +1,6 @@
 ---
 name: google-office
-version: 0.1.2
+version: 0.1.3
 description: >
   Interact with Google Drive, Google Docs, Google Sheets, and Gmail for one or
   more local Google accounts via OAuth. Use when the user asks to list/search/
@@ -20,7 +20,7 @@ Read and write Google Drive, Docs, Sheets, and Gmail through local OAuth tokens.
 - `.env` and `.data/` are gitignored.
 - Default scopes are **read + write** across Drive, Docs, Sheets, and Gmail. Switch `GOOGLE_SCOPES` in `.env` to the `*.readonly` variants for read-only access (see `.env.example`).
 - Write/delete operations change the user's real Drive/Docs/Sheets. Confirm intent before destructive actions (`drive-delete`, overwriting ranges with `sheets-write`).
-- **Gmail send operations** (`gmail-send`, `gmail-send-draft`, `gmail-reply`) send real email. Always confirm with the user before executing any send command — see Gmail Hard Rules below.
+- **Gmail send operations** (`gmail-send`, `gmail-send-draft`, `gmail-reply`) send real email. Always confirm with the user before executing any send command - see Gmail Hard Rules below.
 
 ## Setup / status
 
@@ -43,7 +43,7 @@ The login command opens Google OAuth and waits for the localhost callback. The a
 In Google Cloud Console, create or reuse an OAuth client:
 
 1. Enable **Google Drive API**, **Google Docs API**, **Google Sheets API**, and **Gmail API** for the project.
-2. Add this authorized redirect URI (Web app clients only — Desktop app clients accept any loopback automatically):
+2. Add this authorized redirect URI (Web app clients only - Desktop app clients accept any loopback automatically):
 
    ```txt
    http://localhost:3457/office/callback
@@ -133,17 +133,17 @@ bun .claude/skills/google-office/scripts/google-sheet/apply-style.ts --id SPREAD
 # Data starts with column headers (no merged title row)
 bun .claude/skills/google-office/scripts/google-sheet/apply-style.ts --id SPREADSHEET_ID --no-title-row
 
-# Style tokens live in one place — edit to restyle everything at once
+# Style tokens live in one place - edit to restyle everything at once
 .claude/skills/google-office/scripts/google-sheet/style.config.ts
 ```
 
 **`sheet-utils.ts` exports:**
-- `applyFormalStyle(email, spreadsheetId, opts?)` — full style pass: title merge, header row, alternating banding, borders, freeze, column widths
-- `batchUpdate(email, spreadsheetId, requests)` — low-level Sheets API batchUpdate wrapper
+- `applyFormalStyle(email, spreadsheetId, opts?)` - full style pass: title merge, header row, alternating banding, borders, freeze, column widths
+- `batchUpdate(email, spreadsheetId, requests)` - low-level Sheets API batchUpdate wrapper
 
 **`SheetStyleOptions`:**
-- `sheetName?: string` — which tab to style (default: first tab)
-- `hasTitleRow?: boolean` — row 0 is a merged title (default: `true`)
+- `sheetName?: string` - which tab to style (default: first tab)
+- `hasTitleRow?: boolean` - row 0 is a merged title (default: `true`)
 
 **Style defaults (change in `style.config.ts`):**
 
@@ -184,15 +184,15 @@ Higher-level scripts live in `scripts/google-doc/` and accept any doc ID via `--
 # Apply formal style (fonts, colours, spacing, margins) to any existing doc
 bun .claude/skills/google-office/scripts/google-doc/apply-style.ts --id DOC_ID
 
-# Style tokens live in one place — edit to restyle everything at once
+# Style tokens live in one place - edit to restyle everything at once
 .claude/skills/google-office/scripts/google-doc/style.config.ts
 ```
 
 **`doc-utils.ts` exports:**
-- `applyFormalStyle(email, docId)` — full style pass: margins, title, headings, body
-- `insertStyledTable(email, docId, insertIndex, values)` — inserts a table with styled header row
-- `insertImage(email, docId, insertIndex, uri, width?, height?)` — inserts and centres an image
-- `findEnd(content, needle)` / `findStart(content, needle)` — locate paragraphs by text
+- `applyFormalStyle(email, docId)` - full style pass: margins, title, headings, body
+- `insertStyledTable(email, docId, insertIndex, values)` - inserts a table with styled header row
+- `insertImage(email, docId, insertIndex, uri, width?, height?)` - inserts and centres an image
+- `findEnd(content, needle)` / `findStart(content, needle)` - locate paragraphs by text
 
 **Style defaults (change in `style.config.ts`):**
 
@@ -209,25 +209,25 @@ Colour palette: deep navy title (`#0f2060`), navy-blue headings (`#163872`), tab
 
 ---
 
-## Google Docs API — Hard Rules
+## Google Docs API - Hard Rules
 
 > These rules prevent structural failures that require a full document rebuild to fix.
 
 ### 1. Never pass multi-paragraph text as a single `--text` argument
 
-`docs-create --text "...\n\n..."` or `docs-append` with a long multi-line string stores everything in **one giant text run** as a single paragraph element. Named styles (`TITLE`, `HEADING_1`) can only target separate paragraph elements — not character ranges inside one blob. `applyFormalStyle` and `docs-format` will silently do nothing useful.
+`docs-create --text "...\n\n..."` or `docs-append` with a long multi-line string stores everything in **one giant text run** as a single paragraph element. Named styles (`TITLE`, `HEADING_1`) can only target separate paragraph elements - not character ranges inside one blob. `applyFormalStyle` and `docs-format` will silently do nothing useful.
 
 **Rule:** For any document with headings or distinct sections, insert each paragraph as a **separate API call** (loop, calling `docs-append` once per paragraph). Never pass more than one paragraph of content in a single `--text` argument.
 
 ### 2. Image insertion index is `el.startIndex`, not `el.startIndex + 1`
 
-To embed an image inside a blank paragraph `[S–E]`, use `insertIndex = S` (the paragraph's `startIndex`). Using `S + 1` equals the next paragraph's `startIndex` — the image silently merges into that paragraph (e.g. into a `HEADING_1`).
+To embed an image inside a blank paragraph `[S–E]`, use `insertIndex = S` (the paragraph's `startIndex`). Using `S + 1` equals the next paragraph's `startIndex` - the image silently merges into that paragraph (e.g. into a `HEADING_1`).
 
 **Rule:** When inserting an image into a blank paragraph, set `insertIndex = el.startIndex`.
 
 ### 3. After `insertTable`, reset ghost `HEADING_1` empty paragraphs
 
-The Docs API auto-creates an empty paragraph immediately before every inserted table. That paragraph inherits the named style from the surrounding context. If the insertion point is near a `HEADING_1`, the ghost paragraph becomes a `HEADING_1` too — visible as oversized blank space.
+The Docs API auto-creates an empty paragraph immediately before every inserted table. That paragraph inherits the named style from the surrounding context. If the insertion point is near a `HEADING_1`, the ghost paragraph becomes a `HEADING_1` too - visible as oversized blank space.
 
 **Rule:** After every table insertion, re-fetch the document and scan `body.content` for paragraphs with `namedStyleType === 'HEADING_1'` and empty text. Batch-reset them to `NORMAL_TEXT`.
 
@@ -235,7 +235,7 @@ The Docs API auto-creates an empty paragraph immediately before every inserted t
 
 These helpers iterate `body.content` looking for `paragraph` elements whose joined text includes the needle. If the document was built incorrectly (all text in one paragraph), `findEnd` returns the end of the entire document, causing `insertInlineImage` to fail with *"index must be less than end index"*.
 
-**Rule:** Only use `findEnd`/`findStart` after verifying the document has proper paragraph structure. If `body.content.length ≤ 3` for a multi-section document, the structure is broken — rebuild before proceeding.
+**Rule:** Only use `findEnd`/`findStart` after verifying the document has proper paragraph structure. If `body.content.length ≤ 3` for a multi-section document, the structure is broken - rebuild before proceeding.
 
 ### 5. Verify document structure before inserting images or tables
 
@@ -246,12 +246,12 @@ After creating a document, check `body.content` element count. A multi-section d
 ```ts
 const paraCount = content.filter(e => e.paragraph).length;
 // A 7-section doc should have 20+ paragraph elements
-if (paraCount < 10) throw new Error('Document structure broken — rebuild first');
+if (paraCount < 10) throw new Error('Document structure broken - rebuild first');
 ```
 
 ---
 
-## Styling — Hard Rules
+## Styling - Hard Rules
 
 > These rules are non-negotiable. Apply them on every Google Doc operation.
 
@@ -259,12 +259,12 @@ if (paraCount < 10) throw new Error('Document structure broken — rebuild first
 
 Before creating or significantly editing a Google Doc, explicitly decide:
 
-- **Sections** — what top-level sections does the document need?
-- **Tables** — what comparative, statistical, or reference data should be a table instead of prose?
-- **Bullet points** — what lists of items, features, or attributes should be bulleted?
-- **Numbered lists** — what sequential steps, ranked items, or ordered processes should be numbered?
+- **Sections** - what top-level sections does the document need?
+- **Tables** - what comparative, statistical, or reference data should be a table instead of prose?
+- **Bullet points** - what lists of items, features, or attributes should be bulleted?
+- **Numbered lists** - what sequential steps, ranked items, or ordered processes should be numbered?
 
-Do not start writing prose until the outline is clear. Documents that contain only paragraphs are unacceptable — structure information visually wherever it helps the reader.
+Do not start writing prose until the outline is clear. Documents that contain only paragraphs are unacceptable - structure information visually wherever it helps the reader.
 
 ### 2. Always use structured content
 
@@ -275,11 +275,11 @@ Every Google Doc must include the appropriate mix of:
 | **Table** | Comparing options, listing specs/stats, timelines with 2+ columns, pros-vs-cons |
 | **Bullet list** | Unordered features, characteristics, requirements, observations |
 | **Numbered list** | Steps, ranked priorities, sequential processes |
-| **Prose paragraphs** | Narrative explanation, context, analysis — not raw data |
+| **Prose paragraphs** | Narrative explanation, context, analysis - not raw data |
 
 A document that is only bullets, or only prose, is a signal that structure has not been thought through.
 
-### 3. Always apply formal styling — never leave a doc unstyled
+### 3. Always apply formal styling - never leave a doc unstyled
 
 **For every new doc:**
 1. Write the text with ALL_CAPS section headers (e.g. `EXECUTIVE SUMMARY`, `KEY FINDINGS`).
@@ -287,7 +287,7 @@ A document that is only bullets, or only prose, is a signal that structure has n
    ```sh
    bun .claude/skills/google-office/scripts/google-doc/apply-style.ts --id DOC_ID
    ```
-3. Insert all tables using `insertStyledTable` from `doc-utils.ts` — never use unstyled `docs-insert-table` for new content.
+3. Insert all tables using `insertStyledTable` from `doc-utils.ts` - never use unstyled `docs-insert-table` for new content.
 
 **For existing docs:**
 1. Call `docs-get --id ID` to read current content and named styles.
@@ -295,7 +295,7 @@ A document that is only bullets, or only prose, is a signal that structure has n
    ```sh
    bun .claude/skills/google-office/scripts/google-doc/apply-style.ts --id DOC_ID
    ```
-3. If the doc already has a custom style, mirror it — do not override with the default palette.
+3. If the doc already has a custom style, mirror it - do not override with the default palette.
 
 **Never** leave a newly created document with:
 - Default Google font (Arial)
@@ -317,17 +317,17 @@ Both fonts are available in Google Docs without installation. Do not use Arial, 
 When you need to write a one-off script for a specific doc (e.g. enriching content, batch-inserting tables):
 
 - Place the script in `scripts/google-doc/` (not directly in `scripts/`).
-- Accept doc ID via `--id DOC_ID` — never hardcode an ID.
+- Accept doc ID via `--id DOC_ID` - never hardcode an ID.
 - Import helpers from `./doc-utils.ts` and style tokens from `./style.config.ts`.
 - Delete or generalise the script after use so the folder stays clean.
 
 ---
 
-## Styling — Google Sheets — Hard Rules
+## Styling - Google Sheets - Hard Rules
 
 > These rules are non-negotiable. Apply them on every Google Sheet operation.
 
-### 1. Always apply formal styling — never leave a sheet unstyled
+### 1. Always apply formal styling - never leave a sheet unstyled
 
 **For every new sheet:**
 1. Write data with `sheets-write` or `sheets-append`.
@@ -344,7 +344,7 @@ When you need to write a one-off script for a specific doc (e.g. enriching conte
    ```sh
    bun .claude/skills/google-office/scripts/google-sheet/apply-style.ts --id SPREADSHEET_ID --sheet "Tab Name"
    ```
-4. If the sheet already has a custom palette, mirror it — do not override with the default palette.
+4. If the sheet already has a custom palette, mirror it - do not override with the default palette.
 
 **Never** leave a newly created sheet with:
 - Default font (Arial)
@@ -365,7 +365,7 @@ When you need to write a one-off script for a specific doc (e.g. enriching conte
 When you need a one-off script for a specific spreadsheet:
 
 - Place it in `scripts/google-sheet/` (not directly in `scripts/`).
-- Accept the spreadsheet ID via `--id` — never hardcode an ID.
+- Accept the spreadsheet ID via `--id` - never hardcode an ID.
 - Import helpers from `./sheet-utils.ts` and tokens from `./style.config.ts`.
 - Delete or generalise the script after use so the folder stays clean.
 
@@ -388,6 +388,7 @@ office.ts gmail-download-attachment --message-id MSG_ID --attachment-id ATT_ID -
 
 # Create a draft (saves to Drafts, does NOT send)
 office.ts gmail-create-draft --to alice@example.com,bob@example.com --subject "Hello" --body "Hi there"
+office.ts gmail-create-draft --to alice@example.com --subject "Hello" --body "Plain fallback" --html-body "<p><strong>Hello</strong></p>"
 office.ts gmail-create-draft --to alice@example.com --subject "Re: Ticket" --body "Thanks" --reply-to-id ORIG_MSG_ID
 
 # Send an existing draft by its draft ID
@@ -395,16 +396,20 @@ office.ts gmail-send-draft --id DRAFT_ID
 
 # Send a new email directly (CONFIRM WITH USER FIRST)
 office.ts gmail-send --to alice@example.com --subject "Hello" --body "Hi there"
+office.ts gmail-send --to alice@example.com --subject "Hello" --body "Plain fallback" --html-body "<p><strong>Hello</strong></p>"
 
 # Reply to a message (CONFIRM WITH USER FIRST)
 office.ts gmail-reply --reply-to-id ORIG_MSG_ID --body "Thanks for reaching out"
+office.ts gmail-reply --reply-to-id ORIG_MSG_ID --body "Plain fallback" --html-body "<p>Thanks for reaching out</p>"
 ```
+
+Use `--html-body` when rich formatting is needed. Always provide `--body` as the plain-text fallback because Gmail sends both versions as a multipart alternative message.
 
 Common Gmail search operators: `from:`, `to:`, `subject:`, `in:inbox`, `in:sent`, `has:attachment`, `newer_than:7d`, `is:unread`, `label:`.
 
 ---
 
-## Gmail — Hard Rules
+## Gmail - Hard Rules
 
 > These rules are non-negotiable for all Gmail send operations.
 
@@ -431,7 +436,7 @@ Skipping straight to `gmail-send` is acceptable only when the user explicitly sa
 ### 3. Never expose tokens or message contents beyond what the user needs
 
 - Do not print raw token data or `.env` contents.
-- Message bodies may contain sensitive personal data — only quote what the user needs.
+- Message bodies may contain sensitive personal data - only quote what the user needs.
 
 ---
 

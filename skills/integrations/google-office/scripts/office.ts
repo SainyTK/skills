@@ -37,10 +37,10 @@ Gmail:   gmail-search --query Q [--limit N]
          gmail-inbox [--limit N]
          gmail-read --id MSG_ID [--format full|metadata|raw]
          gmail-download-attachment --message-id MSGID --attachment-id ATTID --filename NAME [--output PATH]
-         gmail-create-draft --to A,B --subject S --body TEXT [--cc C] [--bcc B] [--reply-to-id ID]
+         gmail-create-draft --to A,B --subject S --body TEXT [--html-body HTML] [--cc C] [--bcc B] [--reply-to-id ID]
          gmail-send-draft --id DRAFT_ID
-         gmail-send --to A,B --subject S --body TEXT [--cc C] [--bcc B]
-         gmail-reply --reply-to-id MSG_ID --body TEXT [--cc C] [--bcc B]
+         gmail-send --to A,B --subject S --body TEXT [--html-body HTML] [--cc C] [--bcc B]
+         gmail-reply --reply-to-id MSG_ID --body TEXT [--html-body HTML] [--cc C] [--bcc B]
 `);
     return;
   }

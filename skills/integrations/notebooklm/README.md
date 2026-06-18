@@ -1,6 +1,6 @@
 # NotebookLM Skill
 
-Query your [Google NotebookLM](https://notebooklm.google.com) notebooks directly from Claude Code. Ask questions and get source-grounded answers from Gemini — citations included, hallucinations minimized.
+Query your [Google NotebookLM](https://notebooklm.google.com) notebooks directly from Claude Code. Ask questions and get source-grounded answers from Gemini with citations included and hallucinations minimized.
 
 Each `ask` command opens a headless browser, navigates to your notebook, submits the question, and returns the answer with inline citations.
 
@@ -14,16 +14,16 @@ Each `ask` command opens a headless browser, navigates to your notebook, submits
 curl -fsSL https://bun.sh/install | bash
 ```
 
-### 2. agent-browser
+### 2. Dependencies
 
 ```sh
-npm i -g agent-browser
-agent-browser install   # downloads Chrome for Testing
+cd .agents/skills/notebooklm
+bun install
 ```
 
-### 3. Google auth via agent-browser
+This installs Playwright for the skill. Google Chrome must also be installed because the script launches Playwright with `channel: 'chrome'`.
 
-This skill uses the **default agent-browser profile** (configured in `~/.agent-browser/config.json`). If you have already authenticated with agent-browser for any Google service (e.g. Gmail skill), you are ready — no further login needed.
+### 3. Google auth
 
 To check:
 
@@ -40,6 +40,8 @@ bun .agents/skills/notebooklm/scripts/notebooklm.ts login
 ```
 
 A **visible Chrome window** opens. Sign in to Google. Once the browser lands on `notebooklm.google.com`, the script detects success and closes automatically. Re-run `status` to confirm.
+
+Login stores a persistent Chrome profile in `.data/browser-profile/` and a Playwright storage state file at `.data/state.json`. Normal `ask` runs use a fresh headless browser context seeded from that storage state.
 
 ### 4. A NotebookLM notebook
 
@@ -94,6 +96,7 @@ bun .agents/skills/notebooklm/scripts/notebooklm.ts notebooks activate --id my-n
 | Problem | Solution |
 |---|---|
 | `authenticated: false` | Run `login` and sign in via the opened browser window |
-| "Session expired" on ask | Run `reauth`; if that fails, run `agent-browser --headed open https://notebooklm.google.com` and sign in manually |
-| `agent-browser: command not found` | Run `npm i -g agent-browser && agent-browser install` |
+| "Session expired" on ask | Run `reauth` to refresh `.data/state.json` |
+| `Cannot find package 'playwright'` | Run `bun install` from this skill directory |
+| Browser will not open | Confirm Google Chrome is installed |
 | Query input not found | Run ask with `--show-browser` to debug; selectors may have changed |

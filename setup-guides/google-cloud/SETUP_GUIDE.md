@@ -1,4 +1,4 @@
-# google-cloud — Setup Guide
+# google-cloud - Setup Guide
 
 How to authenticate the Google Cloud CLI so the skill can read BigQuery and Cloud Logging on behalf of your GCP account.
 
@@ -8,7 +8,7 @@ How to authenticate the Google Cloud CLI so the skill can read BigQuery and Clou
 
 - A Google account with access to one or more GCP projects
 - [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) installed and available as `gcloud` in your PATH
-- [BigQuery CLI (`bq`)](https://cloud.google.com/bigquery/docs/bq-command-line-tool) — included with the Cloud SDK
+- [BigQuery CLI (`bq`)](https://cloud.google.com/bigquery/docs/bq-command-line-tool) - included with the Cloud SDK
 
 Verify installation:
 
@@ -19,7 +19,7 @@ bq --version
 
 ---
 
-## Step 1 — Authenticate with gcloud
+## Step 1 - Authenticate with gcloud
 
 ```sh
 gcloud auth login
@@ -39,7 +39,7 @@ gcloud auth list
 
 ---
 
-## Step 2 — Configure a default project (optional)
+## Step 2 - Configure a default project (optional)
 
 Set a project so you don't need `--project` on every command:
 
@@ -51,7 +51,7 @@ Alternatively, pin it in the skill's `.env` file (see Step 3).
 
 ---
 
-## Step 3 — Configure the skill (optional)
+## Step 3 - Configure the skill (optional)
 
 Copy `.env.example` to `.env` inside the skill directory:
 
@@ -79,7 +79,7 @@ GCLOUD_DEFAULT_ACCOUNT=you@example.com
 
 ---
 
-## Step 4 — Build the context cache
+## Step 4 - Build the context cache
 
 Run `refresh-context` to discover all accessible accounts, projects, datasets, and Cloud Run services:
 
@@ -93,11 +93,24 @@ bun .claude/skills/google-cloud/scripts/gcloud.ts refresh-context
 bun .agents/skills/google-cloud/scripts/gcloud.ts refresh-context
 ```
 
-This writes to `.claude/skills/google-cloud/.data/context.json` (Claude Code) or `.agents/skills/google-cloud/.data/context.json` (Codex) (gitignored). It may take a minute if you have many projects.
+This writes to `.claude/skills/google-cloud/.data/context.json` (Claude Code) or `.agents/skills/google-cloud/.data/context.json` (Codex) (gitignored).
+It may take a minute if you have many projects.
+
+To also discover Cloud Scheduler timezones for log time conversion, run:
+
+```sh
+bun .agents/skills/google-cloud/scripts/gcloud.ts refresh-context --with-scheduler
+```
+
+For a faster targeted refresh, scope discovery to one account or project:
+
+```sh
+bun .agents/skills/google-cloud/scripts/gcloud.ts refresh-context --account you@example.com --project YOUR_PROJECT_ID
+```
 
 ---
 
-## Step 5 — Verify
+## Step 5 - Verify
 
 **Claude Code**
 ```sh

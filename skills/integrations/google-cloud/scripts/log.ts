@@ -1,4 +1,4 @@
-import { runOrDie, resolveProject, accountArgs, loadContext } from './lib.ts';
+import { accountArgs, loadContext, resolveServiceTarget, runOrDie } from './lib.ts';
 
 type Args = Record<string, string | boolean>;
 
@@ -14,6 +14,7 @@ function buildFilter(args: Args): string {
   if (args.keyword) parts.push(`textPayload:"${args.keyword}"`);
   if (args.user) parts.push(`protoPayload.authenticationInfo.principalEmail="${args.user}"`);
   if (args['request-id']) parts.push(`labels."run.googleapis.com/request_id"="${args['request-id']}"`);
+  if (args.latency) parts.push(`httpRequest.latency>"${args.latency}"`);
   if (args.from) parts.push(`timestamp>="${args.from}"`);
   if (args.to) parts.push(`timestamp<="${args.to}"`);
   if (args.status) parts.push(`httpRequest.status>=${args.status}`);
@@ -23,17 +24,17 @@ function buildFilter(args: Args): string {
 
 export async function readLogs(args: Args): Promise<void> {
   const ctx = await loadContext();
-  const project = resolveProject(args.project, ctx);
-  const filter = buildFilter(args);
+  const target = resolveServiceTarget(args.service, args, ctx);
+  const filter = buildFilter({ ...args, service: target.service || args.service });
 
   const cmd = [
     'gcloud', 'logging', 'read',
     filter,
-    `--project=${project}`,
+    `--project=${target.project}`,
     `--limit=${args.limit || '50'}`,
     `--format=${LOG_FORMAT}`,
     `--order=${args.order || 'desc'}`,
-    ...accountArgs(args.account),
+    ...accountArgs(target.account || args.account),
   ];
 
   if (!args.from && !args.to) cmd.push(`--freshness=${args.freshness || '1h'}`);

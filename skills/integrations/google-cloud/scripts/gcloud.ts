@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { run, runOrDie, die, print, parseArgs, config, loadContext, saveContext, type Context } from './lib.ts';
+import { run, runOrDie, die, print, parseArgs, config, loadContext, saveContext, withGcloudAccount, type Context } from './lib.ts';
 import * as bq from './bq.ts';
 import * as log from './log.ts';
 
@@ -15,7 +15,7 @@ Auth / context:
   accounts
   use-account --account EMAIL
   projects [--account EMAIL]
-  refresh-context
+  refresh-context [--account EMAIL] [--project PROJECT_ID] [--with-scheduler]
 
 BigQuery:
   bq-datasets [--project P]
@@ -25,12 +25,13 @@ BigQuery:
   bq-query --sql "SELECT ..." [--project P] [--execute] [--rows N] [--bytes N]
   bq-jobs [--project P] [--limit N] [--filter STATES]
   bq-job --job JOB_ID [--project P] [--location LOC]
+  bq-job-results --job JOB_ID [--project P] [--location LOC] [--rows N]
 
 Logging:
   log-read [--service S] [--project P] [--severity LEVEL] [--keyword K]
            [--from UTC] [--to UTC] [--freshness 1h] [--limit N] [--order asc|desc]
            [--filter RAW_FILTER] [--resource-type TYPE] [--user EMAIL] [--status CODE]
-           [--request-id ID]
+           [--request-id ID] [--latency 5s]
   log-errors [--service S] [--project P] [--freshness 24h] [--limit N]
 
 Common flags: --account EMAIL  (overrides active gcloud account for that call)
@@ -44,7 +45,7 @@ Common flags: --account EMAIL  (overrides active gcloud account for that call)
     case 'accounts': await cmdAccounts(); break;
     case 'use-account': await cmdUseAccount(args); break;
     case 'projects': await cmdProjects(args); break;
-    case 'refresh-context': await cmdRefreshContext(); break;
+    case 'refresh-context': await cmdRefreshContext(args); break;
 
     case 'bq-datasets': await bq.listDatasets(args); break;
     case 'bq-tables': await bq.listTables(args); break;
@@ -54,6 +55,7 @@ Common flags: --account EMAIL  (overrides active gcloud account for that call)
     case 'bq-query': await bq.runBqQuery(args); break;
     case 'bq-jobs': await bq.listJobs(args); break;
     case 'bq-job': await bq.showJob(args); break;
+    case 'bq-job-results': await bq.headJobRows(args); break;
 
     case 'log-read': await log.readLogs(args); break;
     case 'log-errors': await log.readErrors(args); break;
@@ -112,7 +114,7 @@ async function getSchedulerJobs(projectId: string, account: string) {
       `--account=${account}`,
       `--location=${region}`,
       '--format=value(name,schedule,timeZone)',
-    ]);
+    ], { timeout: 10_000 });
     if (result.ok && result.stdout.trim()) {
       return result.stdout.trim().split('\n').filter(Boolean).map(line => {
         const [name = '', schedule = '', timezone = ''] = line.split('\t');
@@ -123,13 +125,19 @@ async function getSchedulerJobs(projectId: string, account: string) {
   return [];
 }
 
-async function cmdRefreshContext(): Promise<void> {
+async function cmdRefreshContext(args: Record<string, string | boolean>): Promise<void> {
+  const previousCtx = await loadContext();
+  const includeScheduler = Boolean(args['with-scheduler']);
   console.error('Discovering accounts...');
   const accountsResult = await runOrDie(['gcloud', 'auth', 'list', '--format=value(account,status)']);
+  const accountFilter = typeof args.account === 'string' ? args.account : '';
+  const projectFilter = typeof args.project === 'string' ? args.project : '';
   const accounts: Context['accounts'] = accountsResult.trim().split('\n').filter(Boolean).map(line => {
     const [email = '', status = ''] = line.split('\t');
     return { email: email.trim(), status: status.trim().replace('*', '').trim() };
-  }).filter(a => a.email);
+  }).filter(a => a.email && (!accountFilter || a.email === accountFilter));
+
+  if (accountFilter && accounts.length === 0) die(`Authenticated account not found: ${accountFilter}`);
 
   const projects: Context['projects'] = [];
   const datasets: Context['datasets'] = [];
@@ -144,7 +152,7 @@ async function cmdRefreshContext(): Promise<void> {
       'gcloud', 'projects', 'list',
       `--account=${account.email}`,
       '--format=value(projectId,name)',
-    ]);
+    ], { timeout: 20_000 });
     if (!projResult.ok) continue;
 
     const accountProjects: string[] = [];
@@ -153,6 +161,7 @@ async function cmdRefreshContext(): Promise<void> {
       const pid = projectId.trim();
       const pname = name.trim() || pid;
       if (!pid || pid.startsWith('gen-lang') || pid.startsWith('sys-')) continue;
+      if (projectFilter && pid !== projectFilter) continue;
       const key = `${pid}:${account.email}`;
       if (seenProjects.has(key)) continue;
       seenProjects.add(key);
@@ -162,11 +171,11 @@ async function cmdRefreshContext(): Promise<void> {
 
     for (const pid of accountProjects) {
       console.error(`    [${pid}] fetching datasets...`);
-      const dsResult = await run([
+      const dsResult = await withGcloudAccount(account.email, () => run([
         'bq', '--format=prettyjson', 'ls',
         `--project_id=${pid}`,
         '--max_results=1000',
-      ]);
+      ], { timeout: 30_000 }));
       if (dsResult.ok && dsResult.stdout.trim()) {
         try {
           for (const item of JSON.parse(dsResult.stdout)) {
@@ -186,7 +195,7 @@ async function cmdRefreshContext(): Promise<void> {
         `--project=${pid}`,
         `--account=${account.email}`,
         '--format=value(metadata.name,status.url)',
-      ]);
+      ], { timeout: 20_000 });
       if (svcResult.ok && svcResult.stdout.trim()) {
         for (const line of svcResult.stdout.trim().split('\n').filter(Boolean)) {
           const [sname = '', surl = ''] = line.split('\t');
@@ -199,24 +208,29 @@ async function cmdRefreshContext(): Promise<void> {
         }
       }
 
-      console.error(`    [${pid}] fetching scheduler jobs...`);
-      const jobs = await getSchedulerJobs(pid, account.email);
-      if (jobs.length > 0) {
-        const proj = projects.find(p => p.projectId === pid);
-        if (proj) {
-          const timezones = [...new Set(jobs.map(j => j.timezone).filter(Boolean))];
-          proj.scheduler_timezone = timezones.length === 1 ? timezones[0] : timezones;
-          proj.scheduler_jobs = jobs;
+      if (includeScheduler) {
+        console.error(`    [${pid}] fetching scheduler jobs...`);
+        const jobs = await getSchedulerJobs(pid, account.email);
+        if (jobs.length > 0) {
+          const proj = projects.find(p => p.projectId === pid);
+          if (proj) {
+            const timezones = [...new Set(jobs.map(j => j.timezone).filter(Boolean))];
+            proj.scheduler_timezone = timezones.length === 1 ? timezones[0] : timezones;
+            proj.scheduler_jobs = jobs;
+          }
         }
       }
     }
   }
 
+  if (projectFilter && projects.length === 0) die(`Project not found for selected account(s): ${projectFilter}`);
+
   const ctx: Context = {
     _meta: {
       last_updated: new Date().toISOString().slice(0, 10),
-      note: 'Auto-generated. Run refresh-context to update. Edit manually if needed — changes are preserved across project/service discovery but not across a full refresh.',
+      note: 'Auto-generated. Run refresh-context to update. Manual project_context is preserved across refreshes.',
     },
+    project_context: previousCtx?.project_context || {},
     accounts,
     projects,
     datasets,

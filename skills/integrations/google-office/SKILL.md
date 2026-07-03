@@ -1,6 +1,6 @@
 ---
 name: google-office
-version: 1.0.1
+version: 1.0.2
 description: >
   Use the goog CLI effectively for Google Drive, Google Docs, Google Sheets,
   and GoogleMail through local OAuth. Use when the user asks to list/search/
@@ -316,3 +316,13 @@ goog sheets values COMMAND --help
 ```
 
 If installed help conflicts with this skill, follow installed help and update this skill later.
+
+## CLI Gaps and Bugs
+
+If `goog` has a bug or lacks a needed feature, do not silently work around it with a different Google API surface unless the user explicitly asks for that.
+Prefer making the smallest reliable progress with the installed CLI, then recommend opening a PR at:
+
+https://github.com/SainyTK/goog-cli
+
+Use the `bug` label for bugs.
+Use the `feature-request` label for unsupported or missing features.

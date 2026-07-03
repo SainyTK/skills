@@ -30,22 +30,23 @@ npx skills@latest add SainyTK/skills -a codex
 
 ### Automation
 
-Skills for delegating tasks to Codex subprocesses — computer use, image generation.
+Skills for delegating tasks to Codex subprocesses - computer use, image generation.
 
-- **[agent-browser-core](./skills/automation/agent-browser-core/SKILL.md)** — Browser automation workflow for navigating pages, clicking, filling forms, screenshots, video capture, and authenticated browser profiles.
-- **[codex-computer-use](./skills/automation/codex-computer-use/SKILL.md)** — Run Codex non-interactively to complete desktop GUI tasks with Computer Use. Drive Mac apps, click/type/scroll, read messages, smoke-test automation.
-- **[codex-imagegen](./skills/automation/codex-imagegen/SKILL.md)** — Generate raster images with the `codex_imagegen` tool. Handles wallpapers, PNG/JPG/WebP, transparent images, favicons, app icons, icon sets, and sprite sheets.
+- **[agent-browser-core](./skills/automation/agent-browser-core/SKILL.md)** - Browser automation workflow for navigating pages, clicking, filling forms, screenshots, video capture, and authenticated browser profiles.
+- **[codex-computer-use](./skills/automation/codex-computer-use/SKILL.md)** - Run Codex non-interactively to complete desktop GUI tasks with Computer Use. Drive Mac apps, click/type/scroll, read messages, smoke-test automation.
+- **[codex-imagegen](./skills/automation/codex-imagegen/SKILL.md)** - Generate raster images with the `codex_imagegen` tool. Handles wallpapers, PNG/JPG/WebP, transparent images, favicons, app icons, icon sets, and sprite sheets.
 
 ### Integrations
 
 Skills for reading and working with external services through local account setup.
 
+- **[google-cloud](./skills/integrations/google-cloud/SKILL.md)** - Inspect Google Cloud BigQuery and Cloud Logging through local `gcloud` and `bq` credentials.
 - **[google-office](./skills/integrations/google-office/SKILL.md)** - Use the `goog` CLI for Google Drive, Docs, Sheets, and GoogleMail via local OAuth.
-- **[notebooklm](./skills/integrations/notebooklm/SKILL.md)** — Query Google NotebookLM notebooks with source-grounded answers.
-- **[notion](./skills/integrations/notion/SKILL.md)** — Read, search, create, and update Notion pages, blocks, databases, and data source rows.
-- **[read-line-messages](./skills/integrations/read-line-messages/SKILL.md)** — Read LINE desktop chats from screenshots with accurate transcription.
-- **[read-slack-messages](./skills/integrations/read-slack-messages/SKILL.md)** — Read and search Slack messages, channels, DMs, and threads via local user-token OAuth.
-- **[read-trello-tasks](./skills/integrations/read-trello-tasks/SKILL.md)** — Read Trello boards, lists, cards, and checklist tasks.
+- **[notebooklm](./skills/integrations/notebooklm/SKILL.md)** - Query Google NotebookLM notebooks with source-grounded answers.
+- **[notion](./skills/integrations/notion/SKILL.md)** - Read, search, create, and update Notion pages, blocks, databases, and data source rows.
+- **[read-line-messages](./skills/integrations/read-line-messages/SKILL.md)** - Read LINE desktop chats from screenshots with accurate transcription.
+- **[read-slack-messages](./skills/integrations/read-slack-messages/SKILL.md)** - Read and search Slack messages, channels, DMs, and threads via local user-token OAuth.
+- **[read-trello-tasks](./skills/integrations/read-trello-tasks/SKILL.md)** - Read Trello boards, lists, cards, and checklist tasks.
 
 ---
 
@@ -53,6 +54,6 @@ Skills for reading and working with external services through local account setu
 
 Skills from other repos that are worth following:
 
-- **[grill-me](https://github.com/mattpocock/skills)** (mattpocock/skills) — Interview the user relentlessly about a plan or design until reaching shared understanding.
-- **[caveman](https://github.com/juliusbrussee/caveman)** — Make agent talk like caveman — cuts ~75% of output tokens while keeping full technical accuracy.
-- **[unleak](https://github.com/SainyTK/unleak)** — Local database access guardrails for AI agents — control column-by-column what the agent can see, mask personal data, and reduce sensitive data leakage.
+- **[grill-me](https://github.com/mattpocock/skills)** (mattpocock/skills) - Interview the user relentlessly about a plan or design until reaching shared understanding.
+- **[caveman](https://github.com/juliusbrussee/caveman)** - Make agent talk like caveman - cuts ~75% of output tokens while keeping full technical accuracy.
+- **[unleak](https://github.com/SainyTK/unleak)** - Local database access guardrails for AI agents - control column-by-column what the agent can see, mask personal data, and reduce sensitive data leakage.

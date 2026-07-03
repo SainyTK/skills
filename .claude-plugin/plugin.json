@@ -4,6 +4,7 @@
     "./skills/automation/agent-browser-core",
     "./skills/automation/codex-computer-use",
     "./skills/automation/codex-imagegen",
+    "./skills/integrations/google-cloud",
     "./skills/integrations/google-office",
     "./skills/integrations/notebooklm",
     "./skills/integrations/notion",

@@ -1,9 +1,9 @@
 ---
 name: google-cloud
-version: 0.0.2
+version: 0.0.3
 description: >
-  Inspect and analyze Google Cloud resources — BigQuery datasets, tables, query
-  jobs, and Cloud Logging — using local gcloud/bq CLI credentials. Use when the
+  Inspect and analyze Google Cloud resources - BigQuery datasets, tables, query
+  jobs, and Cloud Logging - using local gcloud/bq CLI credentials. Use when the
   user asks about BigQuery schemas, row samples, query cost estimates, job traces,
   bytes billed, Cloud Run logs, error traces, or GCP project discovery.
   Triggers: "bigquery", "bq", "dataset", "table schema", "sample rows",
@@ -14,7 +14,7 @@ description: >
 # google-cloud
 
 Inspect GCP resources using local `gcloud` and `bq` CLI credentials. Auth is
-handled entirely by the gcloud CLI — no OAuth client setup required.
+handled entirely by the gcloud CLI - no OAuth client setup required.
 
 ## Important
 
@@ -25,6 +25,7 @@ handled entirely by the gcloud CLI — no OAuth client setup required.
 - Default posture is **read-only** for BigQuery. Dry-run before executing any query.
 - Never run destructive BQ operations: `bq rm`, `bq load`, `bq update`, `bq cp`,
   `bq set-iam-policy`, or any `bq mk` that creates production resources.
+- Pass flags as either `--project PROJECT_ID` or `--project=PROJECT_ID`; both forms work.
 
 ## Setup / status
 
@@ -42,7 +43,7 @@ bun .agents/skills/google-cloud/scripts/gcloud.ts refresh-context
 
 ## Authentication
 
-This skill uses the local `gcloud` CLI — no extra OAuth client setup. Log in once:
+This skill uses the local `gcloud` CLI - no extra OAuth client setup. Log in once:
 
 ```sh
 gcloud auth login
@@ -81,12 +82,15 @@ gcloud.ts status
 gcloud.ts accounts
 gcloud.ts use-account --account you@example.com
 gcloud.ts projects [--account you@example.com]
-gcloud.ts refresh-context
+gcloud.ts refresh-context [--account you@example.com] [--project PROJECT_ID] [--with-scheduler]
 ```
 
 ### BigQuery
 
-`--project` is the GCP project ID. `--dataset` is the dataset ID. `--table` is `DATASET.TABLE` or `PROJECT.DATASET.TABLE`.
+`--project` is the GCP project ID.
+`--dataset` is the dataset ID.
+`--table` is `DATASET.TABLE` or `PROJECT.DATASET.TABLE`.
+When `context.json` has a unique dataset or service match, the script resolves project and account from the cache.
 
 ```sh
 # List all datasets
@@ -101,7 +105,7 @@ gcloud.ts bq-schema --table DATASET.TABLE [--project PROJECT_ID]
 # Sample rows (non-destructive head scan)
 gcloud.ts bq-head --table DATASET.TABLE [--rows 20] [--fields field1,field2] [--project PROJECT_ID]
 
-# Dry-run a query (cost estimate only — default behavior)
+# Dry-run a query (cost estimate only, default behavior)
 gcloud.ts bq-query --sql "SELECT COUNT(*) FROM \`project.dataset.table\`" [--project PROJECT_ID]
 
 # Execute a query (capped at 100 rows / 1 GB billed by default)
@@ -112,6 +116,9 @@ gcloud.ts bq-jobs [--project PROJECT_ID] [--limit 50] [--filter 'states:RUNNING,
 
 # Show job details (state, error, bytes billed, SQL)
 gcloud.ts bq-job --job JOB_ID [--project PROJECT_ID] [--location LOCATION]
+
+# Read query job results
+gcloud.ts bq-job-results --job JOB_ID [--project PROJECT_ID] [--location LOCATION] [--rows 100]
 ```
 
 #### BigQuery safety rules
@@ -120,6 +127,7 @@ gcloud.ts bq-job --job JOB_ID [--project PROJECT_ID] [--location LOCATION]
 - Cap rows with `--rows` and billing with `--bytes` on every execution.
 - Prefer `bq-schema` and `bq-head` over full table scans.
 - Never run: `bq rm`, `bq mk`, `bq load`, `bq extract`, `bq update`, `bq cp`, or any IAM mutation.
+- Do not use destination tables unless the user explicitly requests it and separately approves it.
 - For ad-hoc SQL, prefer aggregate/count queries over raw row dumps when data may be sensitive.
 
 #### Common BigQuery patterns
@@ -147,7 +155,9 @@ gcloud.ts bq-jobs --project my-project --filter 'states:DONE' --limit 100
 
 `--service` is the Cloud Run service name. Timestamps (`--from`, `--to`) must be in UTC (ISO 8601).
 
-**Timezone warning:** always convert user-stated local times to UTC before building `--from`/`--to` filters. Check `projects[].scheduler_timezone` in `context.json` for the project's local timezone.
+**Timezone warning:** always convert user-stated local times to UTC before building `--from`/`--to` filters.
+Check `projects[].scheduler_timezone` in `context.json` for the project's local timezone.
+If scheduler timezone metadata is missing and the user gives local times, ask for the timezone or run `gcloud.ts refresh-context --with-scheduler`.
 
 ```sh
 # Recent logs (last 1h)
@@ -168,13 +178,16 @@ gcloud.ts log-read --service SERVICE_NAME --keyword "timeout"
 # HTTP errors
 gcloud.ts log-read --service SERVICE_NAME --status 400
 
+# Slow requests
+gcloud.ts log-read --service SERVICE_NAME --latency 5s
+
 # Trace by request ID
 gcloud.ts log-read --request-id REQUEST_ID [--project PROJECT_ID]
 
 # Non-Cloud-Run resource (e.g. Cloud Function)
 gcloud.ts log-read --resource-type cloud_function --service FUNCTION_NAME
 
-# Audit log — user activity
+# Audit log - user activity
 gcloud.ts log-read --user admin@example.com [--project PROJECT_ID]
 
 # Chronological order (oldest first, useful for tracing a request flow)
@@ -188,7 +201,8 @@ gcloud.ts log-read --project PROJECT_ID \
 #### Log format note
 
 Output is tab-separated: `timestamp | severity | textPayload | jsonPayload.message`.
-Payloads may be truncated by the CLI — this is expected; accept it and work with visible content.
+Payloads may be truncated by the CLI.
+This is expected; accept it and work with visible content.
 
 #### Resource types
 
@@ -209,9 +223,12 @@ gcloud.ts use-account --account other@example.com   # switch active account
 gcloud.ts bq-datasets --account work@example.com    # per-command override
 ```
 
+For BigQuery, `bq` does not support `--account`.
+The helper temporarily switches the active `gcloud` account for the command and restores the previous active account afterward.
+
 ## Output discipline
 
 - For large result sets, filter or summarize rather than dumping everything.
 - Report bytes processed/billed for any BQ query.
-- Log payloads may be sensitive — only quote what the user needs.
+- Log payloads may be sensitive - only quote what the user needs.
 - Auth tokens and `.env` contents must never appear in chat.

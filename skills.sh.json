@@ -4,7 +4,7 @@
   "groupings": [
     {
       "title": "Automation",
-      "description": "Skills for delegating tasks to Codex subprocesses — computer use and image generation.",
+      "description": "Skills for delegating tasks to Codex subprocesses - computer use and image generation.",
       "skills": [
         "agent-browser-core",
         "codex-computer-use",
@@ -15,6 +15,7 @@
       "title": "Integrations",
       "description": "Skills for reading and working with external services through local account setup.",
       "skills": [
+        "google-cloud",
         "google-office",
         "notebooklm",
         "notion",

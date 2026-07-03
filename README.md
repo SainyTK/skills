@@ -40,7 +40,7 @@ Skills for delegating tasks to Codex subprocesses — computer use, image genera
 
 Skills for reading and working with external services through local account setup.
 
-- **[google-office](./skills/integrations/google-office/SKILL.md)** — Read, write, and send across Google Drive, Docs, Sheets, and Gmail via local OAuth.
+- **[google-office](./skills/integrations/google-office/SKILL.md)** - Use the `goog` CLI for Google Drive, Docs, Sheets, and GoogleMail via local OAuth.
 - **[notebooklm](./skills/integrations/notebooklm/SKILL.md)** — Query Google NotebookLM notebooks with source-grounded answers.
 - **[notion](./skills/integrations/notion/SKILL.md)** — Read, search, create, and update Notion pages, blocks, databases, and data source rows.
 - **[read-line-messages](./skills/integrations/read-line-messages/SKILL.md)** — Read LINE desktop chats from screenshots with accurate transcription.

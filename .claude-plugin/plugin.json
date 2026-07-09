@@ -9,7 +9,7 @@
     "./skills/integrations/notebooklm",
     "./skills/integrations/notion",
     "./skills/integrations/read-line-messages",
-    "./skills/integrations/read-slack-messages",
-    "./skills/integrations/read-trello-tasks"
+    "./skills/integrations/read-trello-tasks",
+    "./skills/integrations/slackcli"
   ]
 }

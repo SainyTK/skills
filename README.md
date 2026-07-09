@@ -45,8 +45,8 @@ Skills for reading and working with external services through local account setu
 - **[notebooklm](./skills/integrations/notebooklm/SKILL.md)** - Query Google NotebookLM notebooks with source-grounded answers.
 - **[notion](./skills/integrations/notion/SKILL.md)** - Read, search, create, and update Notion pages, blocks, databases, and data source rows.
 - **[read-line-messages](./skills/integrations/read-line-messages/SKILL.md)** - Read LINE desktop chats from screenshots with accurate transcription.
-- **[read-slack-messages](./skills/integrations/read-slack-messages/SKILL.md)** - Read and search Slack messages, channels, DMs, and threads via local user-token OAuth.
 - **[read-trello-tasks](./skills/integrations/read-trello-tasks/SKILL.md)** - Read Trello boards, lists, cards, and checklist tasks.
+- **[slackcli](./skills/integrations/slackcli/SKILL.md)** - Read and write Slack messages, channels, DMs, threads, canvases, and reactions via the local `slackcli` CLI.
 
 ---
 

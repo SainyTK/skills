@@ -1,6 +1,6 @@
 ---
 name: google-cloud
-version: 0.0.3
+version: 1.0.0
 description: >
   Inspect and analyze Google Cloud resources - BigQuery datasets, tables, query
   jobs, and Cloud Logging - using local gcloud/bq CLI credentials. Use when the
@@ -13,37 +13,20 @@ description: >
 
 # google-cloud
 
-Inspect GCP resources using local `gcloud` and `bq` CLI credentials. Auth is
-handled entirely by the gcloud CLI - no OAuth client setup required.
+Inspect GCP resources using the local `gcloud` and `bq` CLIs directly. Auth is
+handled entirely by the gcloud CLI - no OAuth client setup, no wrapper scripts.
 
 ## Important
 
-- Use the script in this skill directory; invoke with `bun`.
-- Secrets live in `.agents/skills/google-cloud/.env`; never print or read that file into chat.
-- Context cache lives at `.agents/skills/google-cloud/.data/context.json`; do not print raw token contents.
-- `.env` and `.data/` are gitignored.
+- Every operation is a plain `gcloud` or `bq` invocation. There is no helper script in this skill.
 - Default posture is **read-only** for BigQuery. Dry-run before executing any query.
 - Never run destructive BQ operations: `bq rm`, `bq load`, `bq update`, `bq cp`,
   `bq set-iam-policy`, or any `bq mk` that creates production resources.
-- Pass flags as either `--project PROJECT_ID` or `--project=PROJECT_ID`; both forms work.
-
-## Setup / status
-
-From repo root:
-
-```sh
-bun .agents/skills/google-cloud/scripts/gcloud.ts status
-```
-
-If no context exists, build it first:
-
-```sh
-bun .agents/skills/google-cloud/scripts/gcloud.ts refresh-context
-```
+- Auth tokens must never appear in chat.
 
 ## Authentication
 
-This skill uses the local `gcloud` CLI - no extra OAuth client setup. Log in once:
+Log in once:
 
 ```sh
 gcloud auth login
@@ -55,180 +38,200 @@ To add another account:
 gcloud auth login --account=other@example.com
 ```
 
-The `.env` file can pin a default project or account so you don't need to pass `--project` on every command.
-
-## Context cache
-
-Always load context before resolving project or service names:
+List authenticated accounts and switch the active one:
 
 ```sh
-bun .agents/skills/google-cloud/scripts/gcloud.ts status
+gcloud auth list
+gcloud config set account other@example.com
 ```
 
-`context.json` maps project names to IDs, datasets, Cloud Run service names, and scheduler timezones.
+`bq` does not support `--account`; it always follows the active `gcloud` account.
+To run a `bq` command as a different account, switch the active account first, run the command, then switch back.
 
-When a service or dataset is not in the cache, run:
+Pin a default project so you don't need `--project` on every command:
 
 ```sh
-bun .agents/skills/google-cloud/scripts/gcloud.ts refresh-context
+gcloud config set project YOUR_PROJECT_ID
 ```
 
-## Commands
+## Context file
 
-### Auth / context
+Discovering which account owns which project, dataset, or Cloud Run service is
+slow to redo from scratch every time. Keep a running map at:
 
-```sh
-gcloud.ts status
-gcloud.ts accounts
-gcloud.ts use-account --account you@example.com
-gcloud.ts projects [--account you@example.com]
-gcloud.ts refresh-context [--account you@example.com] [--project PROJECT_ID] [--with-scheduler]
+```
+~/.gcloud/google-cloud-skill/context.json
 ```
 
-### BigQuery
+This file is written and read by you (the agent), not by any script.
 
-`--project` is the GCP project ID.
-`--dataset` is the dataset ID.
-`--table` is `DATASET.TABLE` or `PROJECT.DATASET.TABLE`.
-When `context.json` has a unique dataset or service match, the script resolves project and account from the cache.
+- If it exists, read it before resolving a project/dataset/service name the user
+  mentions, so you can pick the right `--account` and `--project` without asking.
+- If it does not exist yet, or a name isn't in it, discover it live with `gcloud`/`bq`
+  (see commands below), then write what you learned back into the file so the
+  next lookup is instant.
+- Keep entries small and factual - account email, project ID, dataset IDs, Cloud
+  Run service names and URLs. Don't store secrets or auth tokens in it.
+
+Suggested shape:
+
+```json
+{
+  "accounts": [
+    { "email": "you@example.com", "projects": ["my-project-id"] }
+  ],
+  "projects": [
+    {
+      "projectId": "my-project-id",
+      "account": "you@example.com",
+      "datasets": ["analytics", "raw"],
+      "services": [
+        { "name": "api-bff-prod", "url": "https://api-bff-prod-xyz.a.run.app" }
+      ]
+    }
+  ]
+}
+```
+
+Update it incrementally: when you discover a new project, dataset, or service
+for an account, merge it in rather than rewriting the whole file from scratch.
+
+## Discovery
 
 ```sh
-# List all datasets
-gcloud.ts bq-datasets [--project PROJECT_ID]
+# List authenticated accounts
+gcloud auth list --format=json
+
+# List projects visible to the active account
+gcloud projects list --format=json
+
+# List projects for a specific account
+gcloud projects list --account=you@example.com --format=json
+```
+
+## BigQuery
+
+`--project_id` is the GCP project ID. A table ref is `DATASET.TABLE` or `PROJECT:DATASET.TABLE`.
+
+```sh
+# List datasets in a project
+bq ls --project_id=PROJECT_ID --max_results=1000
 
 # List tables in a dataset
-gcloud.ts bq-tables --dataset DATASET_ID [--project PROJECT_ID]
+bq ls --project_id=PROJECT_ID DATASET_ID
 
 # Show table schema, row count, size
-gcloud.ts bq-schema --table DATASET.TABLE [--project PROJECT_ID]
+bq show --project_id=PROJECT_ID --format=prettyjson DATASET_ID.TABLE_ID
 
 # Sample rows (non-destructive head scan)
-gcloud.ts bq-head --table DATASET.TABLE [--rows 20] [--fields field1,field2] [--project PROJECT_ID]
+bq head --project_id=PROJECT_ID --max_rows=20 --selected_fields=field1,field2 DATASET_ID.TABLE_ID
 
 # Dry-run a query (cost estimate only, default behavior)
-gcloud.ts bq-query --sql "SELECT COUNT(*) FROM \`project.dataset.table\`" [--project PROJECT_ID]
+bq query --project_id=PROJECT_ID --use_legacy_sql=false --dry_run \
+  "SELECT COUNT(*) FROM \`project.dataset.table\`"
 
-# Execute a query (capped at 100 rows / 1 GB billed by default)
-gcloud.ts bq-query --sql "SELECT ..." --execute [--rows 100] [--bytes 1000000000] [--project PROJECT_ID]
+# Execute a query (always cap rows and billed bytes)
+bq query --project_id=PROJECT_ID --use_legacy_sql=false \
+  --max_rows=100 --maximum_bytes_billed=1000000000 \
+  "SELECT ..."
 
 # List recent jobs
-gcloud.ts bq-jobs [--project PROJECT_ID] [--limit 50] [--filter 'states:RUNNING,DONE']
+bq ls --project_id=PROJECT_ID --jobs --all --max_results=50 --filter='states:RUNNING,DONE'
 
 # Show job details (state, error, bytes billed, SQL)
-gcloud.ts bq-job --job JOB_ID [--project PROJECT_ID] [--location LOCATION]
+bq show --project_id=PROJECT_ID --job --format=prettyjson JOB_ID
 
 # Read query job results
-gcloud.ts bq-job-results --job JOB_ID [--project PROJECT_ID] [--location LOCATION] [--rows 100]
+bq head --project_id=PROJECT_ID --job --max_rows=100 JOB_ID
 ```
 
-#### BigQuery safety rules
+### BigQuery safety rules
 
 - **Always dry-run first** unless the user explicitly requests execution.
-- Cap rows with `--rows` and billing with `--bytes` on every execution.
-- Prefer `bq-schema` and `bq-head` over full table scans.
+- Cap rows with `--max_rows` and billing with `--maximum_bytes_billed` on every execution.
+- Prefer `bq show` and `bq head` over full table scans.
 - Never run: `bq rm`, `bq mk`, `bq load`, `bq extract`, `bq update`, `bq cp`, or any IAM mutation.
 - Do not use destination tables unless the user explicitly requests it and separately approves it.
 - For ad-hoc SQL, prefer aggregate/count queries over raw row dumps when data may be sensitive.
 
-#### Common BigQuery patterns
+## Cloud Logging
+
+Timestamps in `--freshness`/filter expressions must be UTC (ISO 8601).
+Always convert user-stated local times to UTC before building a filter.
+If you don't know the project's local timezone, ask the user or check `gcloud scheduler jobs list` for a timezone hint.
 
 ```sh
-# Check table schema before querying
-gcloud.ts bq-schema --table analytics.events --project my-project
-
-# Sample 20 rows, only non-sensitive fields
-gcloud.ts bq-head --table analytics.events --rows 20 --fields event_name,created_at
-
-# Dry-run for cost estimate
-gcloud.ts bq-query --sql "SELECT COUNT(*) FROM \`my-project.analytics.events\` WHERE DATE(created_at) = '2026-06-01'"
-
-# Capped execution
-gcloud.ts bq-query \
-  --sql "SELECT event_name, COUNT(*) AS n FROM \`my-project.analytics.events\` GROUP BY 1 ORDER BY 2 DESC LIMIT 50" \
-  --execute --rows 50 --bytes 500000000
-
-# Find failed jobs in last run
-gcloud.ts bq-jobs --project my-project --filter 'states:DONE' --limit 100
-```
-
-### Cloud Logging
-
-`--service` is the Cloud Run service name. Timestamps (`--from`, `--to`) must be in UTC (ISO 8601).
-
-**Timezone warning:** always convert user-stated local times to UTC before building `--from`/`--to` filters.
-Check `projects[].scheduler_timezone` in `context.json` for the project's local timezone.
-If scheduler timezone metadata is missing and the user gives local times, ask for the timezone or run `gcloud.ts refresh-context --with-scheduler`.
-
-```sh
-# Recent logs (last 1h)
-gcloud.ts log-read --service SERVICE_NAME [--project PROJECT_ID]
+# Recent logs for a Cloud Run service (last 1h)
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="SERVICE_NAME"' \
+  --project=PROJECT_ID --limit=50 --freshness=1h --order=desc \
+  --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 
 # Errors only (last 24h)
-gcloud.ts log-errors --service SERVICE_NAME [--project PROJECT_ID]
-
-# Custom freshness / limit
-gcloud.ts log-read --service SERVICE_NAME --freshness 6h --limit 200
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="SERVICE_NAME" AND severity>=ERROR' \
+  --project=PROJECT_ID --limit=100 --freshness=24h \
+  --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 
 # Time window (UTC)
-gcloud.ts log-read --service SERVICE_NAME --from 2026-06-01T00:00:00Z --to 2026-06-01T06:00:00Z
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="SERVICE_NAME" AND timestamp>="2026-06-01T00:00:00Z" AND timestamp<="2026-06-01T06:00:00Z"' \
+  --project=PROJECT_ID --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 
 # Keyword search
-gcloud.ts log-read --service SERVICE_NAME --keyword "timeout"
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="SERVICE_NAME" AND textPayload:"timeout"' \
+  --project=PROJECT_ID --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 
-# HTTP errors
-gcloud.ts log-read --service SERVICE_NAME --status 400
+# HTTP status filter
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="SERVICE_NAME" AND httpRequest.status>=400' \
+  --project=PROJECT_ID --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 
 # Slow requests
-gcloud.ts log-read --service SERVICE_NAME --latency 5s
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="SERVICE_NAME" AND httpRequest.latency>"5s"' \
+  --project=PROJECT_ID --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 
 # Trace by request ID
-gcloud.ts log-read --request-id REQUEST_ID [--project PROJECT_ID]
+gcloud logging read \
+  'labels."run.googleapis.com/request_id"="REQUEST_ID"' \
+  --project=PROJECT_ID --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 
 # Non-Cloud-Run resource (e.g. Cloud Function)
-gcloud.ts log-read --resource-type cloud_function --service FUNCTION_NAME
+gcloud logging read \
+  'resource.type="cloud_function" AND resource.labels.function_name="FUNCTION_NAME"' \
+  --project=PROJECT_ID --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 
 # Audit log - user activity
-gcloud.ts log-read --user admin@example.com [--project PROJECT_ID]
+gcloud logging read \
+  'protoPayload.authenticationInfo.principalEmail="admin@example.com"' \
+  --project=PROJECT_ID --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 
 # Chronological order (oldest first, useful for tracing a request flow)
-gcloud.ts log-read --service SERVICE_NAME --from 2026-06-01T00:00:00Z --order asc
-
-# Raw filter (passed directly to gcloud logging read)
-gcloud.ts log-read --project PROJECT_ID \
-  --filter 'resource.type="cloud_run_revision" AND severity>=WARNING'
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="SERVICE_NAME" AND timestamp>="2026-06-01T00:00:00Z"' \
+  --project=PROJECT_ID --order=asc --format='value(timestamp,severity,textPayload,jsonPayload.message)'
 ```
 
-#### Log format note
+`--format=value(...)` is used instead of `--format=json` because log payloads with
+control characters can break JSON formatting. Payloads may be truncated by the
+CLI - this is expected; work with the visible content.
 
-Output is tab-separated: `timestamp | severity | textPayload | jsonPayload.message`.
-Payloads may be truncated by the CLI.
-This is expected; accept it and work with visible content.
+### Resource types
 
-#### Resource types
-
-| Service | `--resource-type` |
+| Service | `resource.type` |
 |---------|-------------------|
-| Cloud Run | `cloud_run_revision` (default) |
+| Cloud Run | `cloud_run_revision` |
 | Cloud Functions | `cloud_function` |
 | App Engine | `gae_app` |
 | GKE | `k8s_container` |
 | Compute Engine | `gce_instance` |
 | Cloud SQL | `cloudsql_database` |
 
-## Multiple accounts
-
-```sh
-gcloud.ts accounts               # list all authenticated accounts
-gcloud.ts use-account --account other@example.com   # switch active account
-gcloud.ts bq-datasets --account work@example.com    # per-command override
-```
-
-For BigQuery, `bq` does not support `--account`.
-The helper temporarily switches the active `gcloud` account for the command and restores the previous active account afterward.
-
 ## Output discipline
 
 - For large result sets, filter or summarize rather than dumping everything.
 - Report bytes processed/billed for any BQ query.
 - Log payloads may be sensitive - only quote what the user needs.
-- Auth tokens and `.env` contents must never appear in chat.
+- Auth tokens must never appear in chat.

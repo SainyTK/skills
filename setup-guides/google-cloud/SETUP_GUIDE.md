@@ -47,93 +47,26 @@ Set a project so you don't need `--project` on every command:
 gcloud config set project YOUR_PROJECT_ID
 ```
 
-Alternatively, pin it in the skill's `.env` file (see Step 3).
+---
+
+## Step 3 - Verify
+
+```sh
+gcloud auth list --format=json
+gcloud projects list --format=json
+```
+
+You should see your authenticated account(s) and the projects they can access.
 
 ---
 
-## Step 3 - Configure the skill (optional)
+## Context file
 
-Copy `.env.example` to `.env` inside the skill directory:
-
-**Claude Code**
-```sh
-cp .claude/skills/google-cloud/.env.example .claude/skills/google-cloud/.env
-```
-
-**Codex**
-```sh
-cp .agents/skills/google-cloud/.env.example .agents/skills/google-cloud/.env
-```
-
-Edit `.env` to set optional defaults:
-
-```dotenv
-# Pin a default project (avoids --project on every command)
-GCLOUD_DEFAULT_PROJECT=my-project-id
-
-# Pin a default account email
-GCLOUD_DEFAULT_ACCOUNT=you@example.com
-```
-
-> `.env` is gitignored. Leave values blank if you prefer to rely on gcloud's active config.
-
----
-
-## Step 4 - Build the context cache
-
-Run `refresh-context` to discover all accessible accounts, projects, datasets, and Cloud Run services:
-
-**Claude Code**
-```sh
-bun .claude/skills/google-cloud/scripts/gcloud.ts refresh-context
-```
-
-**Codex**
-```sh
-bun .agents/skills/google-cloud/scripts/gcloud.ts refresh-context
-```
-
-This writes to `.claude/skills/google-cloud/.data/context.json` (Claude Code) or `.agents/skills/google-cloud/.data/context.json` (Codex) (gitignored).
-It may take a minute if you have many projects.
-
-To also discover Cloud Scheduler timezones for log time conversion, run:
-
-```sh
-bun .agents/skills/google-cloud/scripts/gcloud.ts refresh-context --with-scheduler
-```
-
-For a faster targeted refresh, scope discovery to one account or project:
-
-```sh
-bun .agents/skills/google-cloud/scripts/gcloud.ts refresh-context --account you@example.com --project YOUR_PROJECT_ID
-```
-
----
-
-## Step 5 - Verify
-
-**Claude Code**
-```sh
-bun .claude/skills/google-cloud/scripts/gcloud.ts status
-```
-
-**Codex**
-```sh
-bun .agents/skills/google-cloud/scripts/gcloud.ts status
-```
-
-Expected output:
-
-```json
-{
-  "activeAccount": "you@example.com",
-  "activeProject": "my-project-id",
-  "contextLastUpdated": "2026-06-07",
-  "projectsInContext": 42,
-  "datasetsInContext": 15,
-  "servicesInContext": 8
-}
-```
+The skill keeps a running map of account/project/dataset/service names at
+`~/.gcloud/google-cloud-skill/context.json`, so the agent doesn't have to
+rediscover them from scratch every time. There's nothing to set up here - the
+agent reads and writes this file itself as it works, and falls back to live
+`gcloud`/`bq` discovery whenever an entry isn't in it yet.
 
 ---
 
@@ -157,5 +90,4 @@ gcloud auth login --account=you@example.com
 | `bq: command not found` | The `bq` tool ships with the Cloud SDK. Run `gcloud components install bq` or reinstall the SDK. |
 | `ERROR: (gcloud.auth.list) There are no credentialed accounts` | Run `gcloud auth login`. |
 | Permission denied on a project | Your account may not have the required roles. Ask the project owner for `roles/bigquery.dataViewer` (BQ) or `roles/logging.viewer` (Logging). |
-| Context cache is stale | Run `gcloud.ts refresh-context` to rebuild it. |
-| `quota exceeded` on BQ query | Use `--bytes` to cap billing or switch to a project with available quota. |
+| `quota exceeded` on BQ query | Use `--maximum_bytes_billed` to cap billing or switch to a project with available quota. |

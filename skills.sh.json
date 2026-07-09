@@ -20,8 +20,8 @@
         "notebooklm",
         "notion",
         "read-line-messages",
-        "read-slack-messages",
-        "read-trello-tasks"
+        "read-trello-tasks",
+        "slackcli"
       ]
     }
   ]

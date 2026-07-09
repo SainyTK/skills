@@ -23,6 +23,11 @@ handled entirely by the gcloud CLI - no OAuth client setup, no wrapper scripts.
 - Never run destructive BQ operations: `bq rm`, `bq load`, `bq update`, `bq cp`,
   `bq set-iam-policy`, or any `bq mk` that creates production resources.
 - Auth tokens must never appear in chat.
+- **Never skip the context.json update.** Any time you discover a new
+  account/project/dataset/service mapping in a task, write it to
+  `~/.gcloud/google-cloud-skill/context.json` before ending your turn - see
+  "Context file" below. This is a required step, not an optional convenience,
+  even in a task that is otherwise finished.
 
 ## Authentication
 
@@ -72,6 +77,15 @@ This file is written and read by you (the agent), not by any script.
   next lookup is instant.
 - Keep entries small and factual - account email, project ID, dataset IDs, Cloud
   Run service names and URLs. Don't store secrets or auth tokens in it.
+- **This write-back is mandatory, not optional.** If a discovery step in this
+  turn taught you something not already in the file (a new account/project
+  link, a new dataset, a new service), you MUST write it to context.json
+  before you consider the task done - do not just report the finding in chat
+  and move on. Treat "did I update context.json" as a checklist item on every
+  task that touched discovery, the same way you'd check "did I cap
+  `--max_rows`" on a BigQuery query.
+- If the user has to ask you to save it after the fact, that is a miss:
+  the write should have already happened as part of finishing the task.
 
 Suggested shape:
 

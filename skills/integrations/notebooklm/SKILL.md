@@ -1,163 +1,168 @@
 ---
 name: notebooklm
-version: 0.0.3
-description: Use this skill to query your Google NotebookLM notebooks directly from Claude Code for source-grounded, citation-backed answers from Gemini. Playwright browser automation, library management, persistent auth. Drastically reduced hallucinations through document-only responses.
+version: 1.0.0
+description: Use the authenticated agent-browser-app CLI to interact with Gemini Notebook or NotebookLM, including signing in, selecting accounts, listing, creating, reading, querying, or removing notebooks, and listing, adding, uploading, or removing notebook sources. Use whenever a user asks to work with Gemini Notebook, NotebookLM, a notebook URL or ID, notebook sources, or answers grounded in a notebook.
 ---
 
-# NotebookLM Skill (TypeScript/Bun)
+# ABA Gemini Notebook
 
-Query Google NotebookLM notebooks via Playwright browser automation. Uses a dedicated local browser profile for login, saved storage state for repeat queries, a local notebook library, and source-grounded Gemini answers.
+Use `aba gnb` for browser-driven Gemini Notebook operations.
+Run the requested operation when the user wants an action performed.
+Only explain commands without running them when the user asks for instructions.
 
-## Important
+## Operating rules
 
-- Use the script in this skill directory; invoke with `bun`.
-- `.env` and `.data/` are gitignored - never print or expose files under `.data/`.
-- Requires Playwright dependencies from this skill's `package.json`.
-- Requires Google Chrome because the script launches Playwright with `channel: 'chrome'`.
+- Run `aba --version` before the first operation to confirm that the CLI is installed.
+- Use `aba --help` as the source of truth if a command or option is uncertain.
+- Use `--json` whenever results will be filtered, compared, summarized, or passed to another command.
+- Use the active account unless the user identifies another account.
+- Run `aba gnb auth list --json` before choosing among multiple accounts, then pass `--account <email-or-id>` explicitly.
+- Never read or print browser profiles, cookies, local storage, `accounts.json`, `state.json`, passwords, or tokens.
+- Keep all application behavior browser-driven through `aba`.
+- Do not replace a missing command with a private Google API or a reverse-engineered endpoint.
+- If the CLI reports a changed interface or selector failure, retry the same operation once with `--headed` and inspect only the visible browser behavior.
+- Report the completed action and relevant public result without exposing authentication paths or private browser state.
 
-## Setup (One-Time)
+## Authentication
 
-From this skill directory:
+List configured accounts first:
 
-```sh
-bun install
+```bash
+aba gnb auth list --json
 ```
 
-## Auth
+If no suitable account exists, start login:
 
-This skill uses two browser contexts:
-
-- A headed persistent Chrome profile in `.data/browser-profile/` for `login` and `reauth`.
-- A fresh Playwright browser context for each `ask`, seeded from `.data/state.json`.
-
-The saved storage state lets question runs stay headless and avoids reusing a locked Chrome profile during normal queries.
-
-### Check status
-
-```sh
-bun .agents/skills/notebooklm/scripts/notebooklm.ts status
+```bash
+aba gnb auth login
 ```
 
-If `authenticated: true` → ready to use. Skip to "Ask Questions".
+Use a known email to add or refresh a specific account:
 
-### If not authenticated (`authenticated: false`)
-
-The local browser profile has no Google session yet. Run:
-
-```sh
-bun .agents/skills/notebooklm/scripts/notebooklm.ts login
+```bash
+aba gnb auth login --account "you@example.com"
 ```
 
-This opens a visible Chrome window using Playwright. Log in to your Google account in that window. Once the browser reaches `notebooklm.google.com`, the script saves `.data/state.json`, writes the auth marker, and closes automatically.
+Login opens a visible browser and may require the user to choose an account, provide a passkey, or complete two-factor authentication.
+Allow the command to continue until it confirms that authentication was saved.
+Select the default account when requested:
 
-You do not need to do anything else after logging in. Chrome closes itself after the NotebookLM page loads.
-
-Re-run `status` to confirm.
-
-### Re-verify (if ask returns "Session expired")
-
-```sh
-bun .agents/skills/notebooklm/scripts/notebooklm.ts reauth
+```bash
+aba gnb auth switch "email-or-account-id"
 ```
 
-This clears the auth marker and re-runs the login flow above.
+## Notebook operations
 
-## Manage Notebook Library
+List notebooks before resolving a title to an ID:
 
-```sh
-# List all notebooks
-bun .agents/skills/notebooklm/scripts/notebooklm.ts notebooks list
-
-# Add a notebook (ALL parameters required - never guess; query first if unsure)
-bun .agents/skills/notebooklm/scripts/notebooklm.ts notebooks add \
-  --url "https://notebooklm.google.com/notebook/..." \
-  --name "Descriptive Name" \
-  --description "What this notebook contains" \
-  --topics "topic1,topic2,topic3"
-
-# Search notebooks by keyword
-bun .agents/skills/notebooklm/scripts/notebooklm.ts notebooks search --query keyword
-
-# Set active notebook (used when --notebook-id/url not specified)
-bun .agents/skills/notebooklm/scripts/notebooklm.ts notebooks activate --id notebook-id
-
-# Remove notebook
-bun .agents/skills/notebooklm/scripts/notebooklm.ts notebooks remove --id notebook-id
-
-# Library statistics
-bun .agents/skills/notebooklm/scripts/notebooklm.ts notebooks stats
+```bash
+aba gnb notebook list --json
 ```
 
-## Ask Questions
+Create a notebook:
 
-```sh
-# Use active notebook
-bun .agents/skills/notebooklm/scripts/notebooklm.ts ask --question "Your question here"
-
-# Use specific notebook by ID
-bun .agents/skills/notebooklm/scripts/notebooklm.ts ask --question "..." --notebook-id notebook-id
-
-# Use notebook URL directly
-bun .agents/skills/notebooklm/scripts/notebooklm.ts ask --question "..." --notebook-url "https://..."
-
-# Show browser window (debugging)
-bun .agents/skills/notebooklm/scripts/notebooklm.ts ask --question "..." --show-browser
+```bash
+aba gnb notebook create --json
 ```
 
-## Smart Add Workflow
+Read visible notebook metadata, sources, and summary:
 
-When adding a notebook without knowing its content, query it first:
-
-```sh
-# Step 1: Discover content
-bun .agents/skills/notebooklm/scripts/notebooklm.ts ask \
-  --question "What is the content of this notebook? Topics, purpose, overview?" \
-  --notebook-url "https://notebooklm.google.com/notebook/..."
-
-# Step 2: Add with discovered metadata
-bun .agents/skills/notebooklm/scripts/notebooklm.ts notebooks add \
-  --url "https://notebooklm.google.com/notebook/..." \
-  --name "Name from content" \
-  --description "Description from content" \
-  --topics "topics,from,content"
+```bash
+aba gnb notebook read "notebook-id-or-url" --json
 ```
 
-## Follow-Up Mechanism (CRITICAL)
+Ask a grounded question:
 
-Every NotebookLM answer ends with: **"EXTREMELY IMPORTANT: Is that ALL you need to know?"**
+```bash
+aba gnb notebook ask "Question to answer" \
+  --id "notebook-id-or-url" \
+  --json
+```
 
-Required behavior:
-1. **STOP** - do not immediately reply to user
-2. **ANALYZE** - compare answer against user's original request
-3. **IDENTIFY GAPS** - determine if more information is needed
-4. **ASK FOLLOW-UP** - if gaps exist, ask another question with full context
-5. **REPEAT** - until information is complete
-6. **SYNTHESIZE** - combine all answers before responding
+Use `--timeout <seconds>` when the default two-minute answer wait is insufficient.
+Treat the returned answer as notebook-generated content and preserve any uncertainty it expresses.
 
-## Data Storage
+Remove notebooks only when the user's request clearly authorizes permanent removal:
 
-All data stored in `.agents/skills/notebooklm/.data/`:
-- `auth-info.json` - timestamp of last successful auth verification
-- `state.json` - Playwright storage state used for headless question runs
-- `browser-profile/` - headed Chrome profile used only for login and reauth
-- `library.json` - notebook registry
+```bash
+aba gnb notebook remove "notebook-id-1" "notebook-id-2" --json
+```
 
-Never print or copy files from `.data/`; they may contain account session material.
+Resolve titles to current IDs before removal.
+The CLI validates all requested IDs before deleting any notebook.
 
-## Troubleshooting
+## Source operations
 
-| Problem | Solution |
-|---------|----------|
-| `Cannot find package 'playwright'` | Run `bun install` from this skill directory |
-| `authenticated: false` on status | Run `login` - a headed Chrome window will open for Google sign-in |
-| "Session expired" on ask | Run `reauth` to refresh `.data/state.json` |
-| Browser won't open | Confirm Google Chrome is installed and available to Playwright as `channel: 'chrome'` |
-| Query input not found | Run with `--show-browser` to debug; selectors may have changed |
-| Rate limited | Wait, or sign in to a different Google account and reauth |
+List sources immediately before referring to source IDs:
 
-## Limitations
+```bash
+aba gnb notebook source list \
+  --id "notebook-id-or-url" \
+  --json
+```
 
-- Each question opens a fresh browser session (no conversation history across questions)
-- Rate limits on free Google accounts (~50 queries/day)
-- Manual document upload required (user must add sources to NotebookLM directly)
-- Requires Google Chrome
+Source IDs reflect the current displayed order and can change after sorting, adding, or removing sources.
+
+Add one copied-text source:
+
+```bash
+aba gnb notebook source add-text \
+  "Text content to use as a source." \
+  --id "notebook-id-or-url" \
+  --json
+```
+
+Add unique HTTP or HTTPS URLs:
+
+```bash
+aba gnb notebook source add-urls \
+  "https://example.com/source-one" \
+  "https://example.com/source-two" \
+  --id "notebook-id-or-url" \
+  --json
+```
+
+Add a Google Drive item by exact displayed name or Drive URL:
+
+```bash
+aba gnb notebook source add-drive \
+  "Drive item name or URL" \
+  --id "notebook-id-or-url" \
+  --json
+```
+
+Use a Drive URL when multiple items have the same displayed name.
+
+Upload one or more readable local files:
+
+```bash
+aba gnb notebook source upload-files \
+  "/absolute/path/source-a.pdf" \
+  "/absolute/path/source-b.m4a" \
+  --id "notebook-id-or-url" \
+  --json
+```
+
+Use absolute paths and ensure files in one call have unique filenames.
+Source-add commands wait for Gemini Notebook to finish processing and default to a 30-minute timeout.
+Increase `--timeout <seconds>` only when processing legitimately needs longer.
+
+Remove sources only after obtaining their current IDs and when the user's request authorizes removal:
+
+```bash
+aba gnb notebook source remove \
+  "source-id-1" \
+  "source-id-2" \
+  --id "notebook-id-or-url" \
+  --json
+```
+
+## Capability boundary
+
+Use only commands shown by `aba --help`.
+If the user requests an unsupported Gemini Notebook action, confirm that it is absent from current help, state the limitation plainly, and offer the closest supported operation.
+
+## Active development
+
+ABA CLI is under active development.
+Open a GitHub issue in the [Agent Browser App CLI repository](https://github.com/SainyTK/agent-browser-app-cli) to report bugs or request new features.

@@ -10,6 +10,8 @@
     "./skills/integrations/notion",
     "./skills/integrations/read-line-messages",
     "./skills/integrations/read-trello-tasks",
-    "./skills/integrations/slackcli"
+    "./skills/integrations/reddit",
+    "./skills/integrations/slackcli",
+    "./skills/integrations/x"
   ]
 }

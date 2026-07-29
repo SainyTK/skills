@@ -21,7 +21,9 @@
         "notion",
         "read-line-messages",
         "read-trello-tasks",
-        "slackcli"
+        "reddit",
+        "slackcli",
+        "x"
       ]
     }
   ]

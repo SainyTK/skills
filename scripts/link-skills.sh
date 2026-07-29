@@ -6,7 +6,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${HOME}/.claude/skills"
 mkdir -p "$TARGET"
 
-find "$REPO/skills" -mindepth 2 -maxdepth 2 -name "SKILL.md" | while read -r skill_md; do
+find "$REPO/skills" -mindepth 3 -maxdepth 3 -name "SKILL.md" | while read -r skill_md; do
   skill_dir="$(dirname "$skill_md")"
   skill_name="$(basename "$skill_dir")"
   link="$TARGET/$skill_name"

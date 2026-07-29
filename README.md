@@ -41,12 +41,14 @@ Skills for delegating tasks to Codex subprocesses - computer use, image generati
 Skills for reading and working with external services through local account setup.
 
 - **[google-cloud](./skills/integrations/google-cloud/SKILL.md)** - Inspect Google Cloud BigQuery and Cloud Logging through local `gcloud` and `bq` credentials.
-- **[google-office](./skills/integrations/google-office/SKILL.md)** - Use the `goog` CLI for Google Drive, Docs, Sheets, and GoogleMail via local OAuth.
-- **[notebooklm](./skills/integrations/notebooklm/SKILL.md)** - Query Google NotebookLM notebooks with source-grounded answers.
+- **[google-office](./skills/integrations/google-office/SKILL.md)** - Operate Google Workspace through the `goog` CLI via local OAuth.
+- **[notebooklm](./skills/integrations/notebooklm/SKILL.md)** - Operate Gemini Notebook and NotebookLM through the authenticated ABA CLI.
 - **[notion](./skills/integrations/notion/SKILL.md)** - Read, search, create, and update Notion pages, blocks, databases, and data source rows.
 - **[read-line-messages](./skills/integrations/read-line-messages/SKILL.md)** - Read LINE desktop chats from screenshots with accurate transcription.
 - **[read-trello-tasks](./skills/integrations/read-trello-tasks/SKILL.md)** - Read Trello boards, lists, cards, and checklist tasks.
+- **[reddit](./skills/integrations/reddit/SKILL.md)** - Read authenticated Reddit feeds and public profiles through the ABA CLI.
 - **[slackcli](./skills/integrations/slackcli/SKILL.md)** - Read and write Slack messages, channels, DMs, threads, canvases, and reactions via the local `slackcli` CLI.
+- **[x](./skills/integrations/x/SKILL.md)** - Read authenticated X feeds and public profiles through the ABA CLI.
 
 ---
 
